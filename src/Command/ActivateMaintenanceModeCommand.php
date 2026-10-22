@@ -12,7 +12,7 @@ use Symfony\Component\Console\Style\SymfonyStyle;
 use Symfony\Component\DependencyInjection\ParameterBag\ParameterBagInterface;
 
 #[AsCommand(
-    name: 'app:maintenance:activate',
+    name: 'maintenance-bundle:maintenance:activate',
     description: 'Activates the maintenance mode of the application.'
 )]
 class ActivateMaintenanceModeCommand extends Command
