@@ -52,5 +52,6 @@ class MaintenanceBundle extends AbstractBundle
     public function loadExtension(array $config, ContainerConfigurator $container, ContainerBuilder $builder): void
     {
         $builder->setParameter('maintenance.config', $config);
+        $container->import('../config/services.yaml');
     }
 }
