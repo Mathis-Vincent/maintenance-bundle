@@ -1,7 +1,7 @@
 {
   "name": "mathis-vincent/maintenance-bundle",
   "description": "A highly flexible and fully configurable Symfony bundle to handle multiple types of maintenance modes seamlessly.",
-  "type": "symfony-bundle",
+  "type": "library",
   "license": "MIT",
   "authors": [
     {
