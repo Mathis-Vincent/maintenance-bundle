@@ -10,7 +10,7 @@ use Symfony\Component\Console\Output\OutputInterface;
 use Symfony\Component\Console\Style\SymfonyStyle;
 
 #[AsCommand(
-    name: 'maintenance-bundle:maintenance:deactivate',
+    name: 'maintenance:deactivate',
     description: 'Deactivates the maintenance mode of the application.'
 )]
 class DeactivateMaintenanceModeCommand extends Command

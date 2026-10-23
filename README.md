@@ -122,24 +122,24 @@ maintenance:
 
 ## 4. Console Commands
 
-The bundle provides two console commands under the `app:maintenance:*` namespace.
+The bundle provides two console commands under the `maintenance:*` namespace.
 
 ### A. Activate Maintenance Mode
 
 ```bash
 # Activate maintenance mode with default level ("default")
-php bin/console app:maintenance:activate
+php bin/console maintenance:activate
 
 # Activate maintenance mode for a specific level (e.g., "admin")
-php bin/console app:maintenance:activate admin
+php bin/console maintenance:activate admin
 ```
 
-> **Validation**: Activating an undeclared level (e.g., `php bin/console app:maintenance:activate non_existent`) will raise an error and fail gracefully.
+> **Validation**: Activating an undeclared level (e.g., `php bin/console maintenance:activate non_existent`) will raise an error and fail gracefully.
 
 ### B. Deactivate Maintenance Mode
 
 ```bash
-php bin/console app:maintenance:deactivate
+php bin/console maintenance:deactivate
 ```
 
 ---
@@ -154,6 +154,6 @@ The Twig extension (`MaintenanceTwigExtension`) provides three global functions:
 
 ### Behavior Overview:
 - **Normal Mode**: `{{ maintenance_banner() }}` returns an empty string.
-- **Maintenance Active (`app:maintenance:activate admin`)**:
+- **Maintenance Active (`maintenance:activate admin`)**:
   - Unauthenticated or unauthorized visitors receive the 503 HTTP status page.
   - Authorized users (via IP, role, or HMAC cookie) navigate seamlessly and automatically receive a signed cookie mapped to their role duration.
