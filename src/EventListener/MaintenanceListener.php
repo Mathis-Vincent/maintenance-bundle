@@ -4,6 +4,7 @@ namespace MathisVincent\MaintenanceBundle\EventListener;
 
 use MathisVincent\MaintenanceBundle\Service\MaintenanceManager;
 use MathisVincent\MaintenanceBundle\Service\MaintenanceTokenSigner;
+use Symfony\Bundle\SecurityBundle\Security;
 use Symfony\Component\DependencyInjection\ParameterBag\ParameterBagInterface;
 use Symfony\Component\EventDispatcher\Attribute\AsEventListener;
 use Symfony\Component\HttpFoundation\Cookie;
@@ -12,7 +13,6 @@ use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\HttpKernel\Event\RequestEvent;
 use Symfony\Component\HttpKernel\Event\ResponseEvent;
 use Symfony\Component\HttpKernel\KernelEvents;
-use Symfony\Bundle\SecurityBundle\Security;
 use Twig\Environment;
 
 /**
@@ -32,7 +32,8 @@ class MaintenanceListener
         private ParameterBagInterface $params,
         private Environment $twig,
         private ?Security $security = null
-    ) {}
+    ) {
+    }
 
     /**
      * Handles the incoming request and evaluates maintenance access rules.
@@ -104,6 +105,7 @@ class MaintenanceListener
             );
 
             $event->getRequest()->attributes->set('_maintenance_cookie_to_set', $cookie);
+
             return;
         }
 

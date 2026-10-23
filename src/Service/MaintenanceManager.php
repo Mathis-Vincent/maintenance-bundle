@@ -13,7 +13,7 @@ class MaintenanceManager
 
     public function __construct(KernelInterface $kernel)
     {
-        $this->stateFile = $kernel->getProjectDir() . '/var/maintenance.json';
+        $this->stateFile = $kernel->getProjectDir().'/var/maintenance.json';
     }
 
     public function activate(string $level): void
@@ -25,7 +25,7 @@ class MaintenanceManager
 
         $dir = dirname($this->stateFile);
         if (!is_dir($dir)) {
-            mkdir($dir, 0777, true);
+            mkdir($dir, 0o777, true);
         }
 
         file_put_contents($this->stateFile, json_encode($data));
@@ -45,6 +45,7 @@ class MaintenanceManager
         }
 
         $content = file_get_contents($this->stateFile);
+
         return json_decode($content, true);
     }
 }

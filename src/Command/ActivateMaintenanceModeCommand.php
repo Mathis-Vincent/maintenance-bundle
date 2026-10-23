@@ -38,6 +38,7 @@ class ActivateMaintenanceModeCommand extends Command
 
         if (!isset($config['levels'][$level])) {
             $io->error(sprintf('The maintenance level "%s" does not exist in your configuration.', $level));
+
             return Command::FAILURE;
         }
 

@@ -1,2 +1,9 @@
 .idea/
 .claude/
+CLAUDE.md
+/vendor/
+/composer.lock
+/coverage/
+/coverage.txt
+/.phpunit.cache/
+/.php-cs-fixer.cache

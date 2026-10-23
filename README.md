@@ -1,18 +1,27 @@
 # Symfony Maintenance Bundle
 
-A robust, modern, and fully configurable Symfony 8.1+ bundle to manage application maintenance mode.
+[![CI](https://github.com/Mathis-Vincent/maintenance-bundle/actions/workflows/ci.yml/badge.svg)](https://github.com/Mathis-Vincent/maintenance-bundle/actions/workflows/ci.yml)
+[![Latest Version](https://img.shields.io/packagist/v/mathis-vincent/maintenance-bundle.svg)](https://packagist.org/packages/mathis-vincent/maintenance-bundle)
+[![PHP Version](https://img.shields.io/packagist/dependency-v/mathis-vincent/maintenance-bundle/php.svg)](https://packagist.org/packages/mathis-vincent/maintenance-bundle)
+[![License](https://img.shields.io/github/license/Mathis-Vincent/maintenance-bundle.svg)](LICENSE)
+
+A robust, modern, and fully configurable Symfony bundle to manage application maintenance mode.
 
 It supports multi-level configuration, cryptographic protection via HMAC signing (using `kernel.secret`), IP address and user role restrictions, as well as automatic secure cookie bypass generation mapped directly to user roles.
+
+**Requirements:** PHP 8.2+ and Symfony 6.4, 7.x or 8.x.
 
 ---
 
 ## 📋 Table of Contents
 
 1. [Global Concept](#1-global-concept)
-2. [Installation & Integration](#3-installation--integration)
-3. [YAML Configuration](#4-yaml-configuration)
-4. [Console Commands](#5-console-commands)
-5. [Displaying the Maintenance Banner](#6-displaying-the-maintenance-banner)
+2. [Installation & Integration](#2-installation--integration)
+3. [YAML Configuration](#3-yaml-configuration)
+4. [Console Commands](#4-console-commands)
+5. [Displaying the Maintenance Banner](#5-displaying-the-maintenance-banner)
+6. [Contributing](#6-contributing)
+7. [License](#7-license)
 
 ---
 
@@ -157,3 +166,24 @@ The Twig extension (`MaintenanceTwigExtension`) provides three global functions:
 - **Maintenance Active (`maintenance:activate admin`)**:
   - Unauthenticated or unauthorized visitors receive the 503 HTTP status page.
   - Authorized users (via IP, role, or HMAC cookie) navigate seamlessly and automatically receive a signed cookie mapped to their role duration.
+
+---
+
+## 6. Contributing
+
+Contributions are welcome! Bug reports, feature ideas and pull requests can all be submitted on [GitHub](https://github.com/Mathis-Vincent/maintenance-bundle/issues).
+
+The whole toolchain runs in Docker, so you only need Docker and `make`:
+
+```bash
+make install   # build the image and install dependencies
+make ci        # coding style + static analysis + tests, like the CI
+```
+
+See [CONTRIBUTING.md](CONTRIBUTING.md) for the full workflow.
+
+---
+
+## 7. License
+
+This bundle is released under the [MIT License](LICENSE).

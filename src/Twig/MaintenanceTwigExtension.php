@@ -14,7 +14,8 @@ class MaintenanceTwigExtension extends AbstractExtension
         private MaintenanceManager $maintenanceManager,
         private ParameterBagInterface $params,
         private Environment $twig
-    ) {}
+    ) {
+    }
 
     public function getFunctions(): array
     {
@@ -28,12 +29,14 @@ class MaintenanceTwigExtension extends AbstractExtension
     public function isMaintenanceActive(): bool
     {
         $state = $this->maintenanceManager->getState();
+
         return !empty($state['active']);
     }
 
     public function getMaintenanceLevel(): string
     {
         $state = $this->maintenanceManager->getState();
+
         return $state['level'] ?? 'default';
     }
 

@@ -1,0 +1,66 @@
+name: CI
+
+on:
+  push:
+    branches: [main, develop]
+  pull_request:
+
+jobs:
+  quality:
+    name: Coding style & static analysis
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.4'
+          coverage: none
+      - uses: ramsey/composer-install@v3
+      - run: vendor/bin/php-cs-fixer fix --dry-run --diff
+      - run: vendor/bin/psalm --no-cache --output-format=github
+
+  tests:
+    name: PHP ${{ matrix.php }} / Symfony ${{ matrix.symfony }}
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - { php: '8.2', symfony: '6.4.*' }
+          - { php: '8.3', symfony: '7.4.*' }
+          - { php: '8.4', symfony: '8.*', coverage: true }
+          - { php: '8.5', symfony: '8.*' }
+    env:
+      SYMFONY_REQUIRE: ${{ matrix.symfony }}
+      # coverage is only measured on main
+      COVERAGE: ${{ matrix.coverage && github.ref == 'refs/heads/main' }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: shivammathur/setup-php@v2
+        with:
+          php-version: ${{ matrix.php }}
+          coverage: ${{ env.COVERAGE == 'true' && 'pcov' || 'none' }}
+      # symfony/flex enforces SYMFONY_REQUIRE when resolving dependencies
+      - run: |
+          composer global config --no-plugins allow-plugins.symfony/flex true
+          composer global require --no-progress --no-scripts symfony/flex
+      - uses: ramsey/composer-install@v3
+        with:
+          dependency-versions: highest
+
+      - if: env.COVERAGE != 'true'
+        run: vendor/bin/phpunit
+
+      - if: env.COVERAGE == 'true'
+        run: vendor/bin/phpunit --coverage-html coverage --coverage-text=coverage.txt
+      - if: env.COVERAGE == 'true'
+        run: |
+          echo '### Code coverage' >> "$GITHUB_STEP_SUMMARY"
+          echo '```' >> "$GITHUB_STEP_SUMMARY"
+          cat coverage.txt >> "$GITHUB_STEP_SUMMARY"
+          echo '```' >> "$GITHUB_STEP_SUMMARY"
+      - if: env.COVERAGE == 'true'
+        uses: actions/upload-artifact@v4
+        with:
+          name: coverage-html
+          path: coverage/
