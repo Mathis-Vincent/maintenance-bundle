@@ -60,7 +60,7 @@ class MaintenanceListener
         $request = $event->getRequest();
 
         $clientToken = $request->cookies->get(self::COOKIE_NAME);
-        if ($clientToken && $this->tokenSigner->validateToken($clientToken)) {
+        if ($clientToken && $this->tokenSigner->validateToken($clientToken, $level)) {
             return;
         }
 
@@ -88,8 +88,8 @@ class MaintenanceListener
         }
 
         if ($isAuthorized) {
-            if (!$clientToken || !$this->tokenSigner->validateToken($clientToken)) {
-                $clientToken = $this->tokenSigner->generateToken($userLifetime);
+            if (!$clientToken || !$this->tokenSigner->validateToken($clientToken, $level)) {
+                $clientToken = $this->tokenSigner->generateToken($userLifetime, $level);
             }
 
             $cookie = Cookie::create(
