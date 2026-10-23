@@ -84,6 +84,8 @@ To display the maintenance warning banner to authorized users while maintenance 
 
 Create or edit the file `config/packages/maintenance.yaml` to define role lifetimes and access rules:
 
+> **Level names are up to you.** `default`, `admin` and `help_desk` below are only examples: declare as many levels as you need under `levels`, with any name (e.g. `deploy`, `db_migration`, `partners_only`). The only special name is `default`, which `maintenance:activate` uses when no level is given.
+
 ```yaml
 maintenance:
   # Global cookie lifetimes per role (in seconds)
@@ -92,11 +94,13 @@ maintenance:
     ROLE_HELP_DESK: 2592000 # 30 days
 
   levels:
-    # 1. Default Level: Blocks all visitors without exception
+    # Example levels — rename, remove or add your own.
+
+    # "default": blocks all visitors without exception
     default:
       template: "maintenance/503.html.twig"
 
-    # 2. Admin Level: Allows specified IPs and ROLE_ADMIN users
+    # "admin" (example): allows specified IPs and ROLE_ADMIN users
     admin:
       allowed_ip:
         - '%env(ADMIN_IP)%'
@@ -105,7 +109,7 @@ maintenance:
       template: "maintenance/503.html.twig"
       banner_template: "maintenance/banner.html.twig"
 
-    # 3. Help Desk Level: Extends access to support teams
+    # "help_desk" (example): extends access to support teams
     help_desk:
       allowed_ip:
         - '%env(ADMIN_IP)%'
@@ -139,8 +143,8 @@ The bundle provides two console commands under the `maintenance:*` namespace.
 # Activate maintenance mode with default level ("default")
 php bin/console maintenance:activate
 
-# Activate maintenance mode for a specific level (e.g., "admin")
-php bin/console maintenance:activate admin
+# Activate maintenance mode for any level declared in your config (e.g., "admin")
+php bin/console maintenance:activate <level>
 ```
 
 > **Validation**: Activating an undeclared level (e.g., `php bin/console maintenance:activate non_existent`) will raise an error and fail gracefully.
