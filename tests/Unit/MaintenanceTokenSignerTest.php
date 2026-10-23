@@ -13,47 +13,54 @@ class MaintenanceTokenSignerTest extends TestCase
     {
         $signer = $this->signer();
 
-        self::assertTrue($signer->validateToken($signer->generateToken(60)));
+        self::assertTrue($signer->validateToken($signer->generateToken(60, 'admin'), 'admin'));
+    }
+
+    public function testTokenFromAnotherLevelIsRejected(): void
+    {
+        $signer = $this->signer();
+
+        self::assertFalse($signer->validateToken($signer->generateToken(60, 'admin'), 'default'));
     }
 
     public function testTokensAreUnique(): void
     {
         $signer = $this->signer();
 
-        self::assertNotSame($signer->generateToken(60), $signer->generateToken(60));
+        self::assertNotSame($signer->generateToken(60, 'admin'), $signer->generateToken(60, 'admin'));
     }
 
     public function testExpiredTokenIsRejected(): void
     {
         $signer = $this->signer();
 
-        self::assertFalse($signer->validateToken($signer->generateToken(-1)));
+        self::assertFalse($signer->validateToken($signer->generateToken(-1, 'admin'), 'admin'));
     }
 
     public function testTokenSignedWithAnotherSecretIsRejected(): void
     {
-        self::assertFalse($this->signer('secret-a')->validateToken($this->signer('secret-b')->generateToken(60)));
+        self::assertFalse($this->signer('secret-a')->validateToken($this->signer('secret-b')->generateToken(60, 'admin'), 'admin'));
     }
 
     public function testTamperedPayloadIsRejected(): void
     {
-        [, $signature] = explode('.', $this->signer()->generateToken(60));
+        [, $signature] = explode('.', $this->signer()->generateToken(60, 'admin'));
         $payload = rtrim(strtr(base64_encode('{"exp":9999999999}'), '+/', '-_'), '=');
 
-        self::assertFalse($this->signer()->validateToken($payload.'.'.$signature));
+        self::assertFalse($this->signer()->validateToken($payload.'.'.$signature, 'admin'));
     }
 
     public function testSignedPayloadWithoutExpiryIsRejected(): void
     {
         $payload = rtrim(strtr(base64_encode('{"nonce":"x"}'), '+/', '-_'), '=');
 
-        self::assertFalse($this->signer()->validateToken($payload.'.'.hash_hmac('sha256', $payload, 'secret')));
+        self::assertFalse($this->signer()->validateToken($payload.'.'.hash_hmac('sha256', $payload, 'secret'), 'admin'));
     }
 
     #[DataProvider('malformedTokens')]
     public function testMalformedTokenIsRejected(string $token): void
     {
-        self::assertFalse($this->signer()->validateToken($token));
+        self::assertFalse($this->signer()->validateToken($token, 'admin'));
     }
 
     public static function malformedTokens(): iterable

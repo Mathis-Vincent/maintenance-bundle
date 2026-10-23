@@ -119,10 +119,10 @@ class MaintenanceListenerTest extends WebTestCase
         self::assertResponseStatusCodeSame(503);
     }
 
-    public function testValidBypassCookieGetsThroughAnyLevel(): void
+    public function testValidBypassCookieGetsThroughItsLevel(): void
     {
-        $this->manager()->activate('default');
-        $token = static::getContainer()->get(MaintenanceTokenSigner::class)->generateToken(60);
+        $this->manager()->activate('admin');
+        $token = static::getContainer()->get(MaintenanceTokenSigner::class)->generateToken(60, 'admin');
         $this->client->getCookieJar()->set(new Cookie(self::COOKIE, $token));
 
         $this->client->request('GET', '/');
@@ -130,10 +130,21 @@ class MaintenanceListenerTest extends WebTestCase
         self::assertResponseIsSuccessful();
     }
 
+    public function testBypassCookieFromAnotherLevelIsRejected(): void
+    {
+        $this->manager()->activate('default');
+        $token = static::getContainer()->get(MaintenanceTokenSigner::class)->generateToken(60, 'admin');
+        $this->client->getCookieJar()->set(new Cookie(self::COOKIE, $token));
+
+        $this->client->request('GET', '/');
+
+        self::assertResponseStatusCodeSame(503);
+    }
+
     public function testAuthorizedUserKeepsItsValidToken(): void
     {
         $this->manager()->activate('admin');
-        $token = static::getContainer()->get(MaintenanceTokenSigner::class)->generateToken(60);
+        $token = static::getContainer()->get(MaintenanceTokenSigner::class)->generateToken(60, 'admin');
         $this->client->getCookieJar()->set(new Cookie(self::COOKIE, $token));
 
         $this->client->request('GET', '/', server: ['REMOTE_ADDR' => '10.0.0.42']);
@@ -177,7 +188,7 @@ class MaintenanceListenerTest extends WebTestCase
         self::assertEqualsWithDelta(time() + $lifetime, $cookie->getExpiresTime(), 5);
         self::assertTrue($cookie->isSecure());
         self::assertTrue($cookie->isHttpOnly());
-        self::assertTrue(static::getContainer()->get(MaintenanceTokenSigner::class)->validateToken((string) $cookie->getValue()));
+        self::assertTrue(static::getContainer()->get(MaintenanceTokenSigner::class)->validateToken((string) $cookie->getValue(), $this->manager()->getState()['level']));
     }
 
     private function user(string $username): \Symfony\Component\Security\Core\User\UserInterface
