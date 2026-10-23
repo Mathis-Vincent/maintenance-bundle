@@ -20,20 +20,20 @@ class MaintenanceTokenSigner
     {
         $payload = [
             'exp' => time() + $lifetimeSeconds,
-            'nonce' => bin2hex(random_bytes(16))
+            'nonce' => bin2hex(random_bytes(16)),
         ];
 
         $jsonPayload = json_encode($payload);
         $base64Payload = rtrim(strtr(base64_encode($jsonPayload), '+/', '-_'), '=');
         $signature = hash_hmac('sha256', $base64Payload, $this->secret);
 
-        return $base64Payload . '.' . $signature;
+        return $base64Payload.'.'.$signature;
     }
 
     public function validateToken(string $token): bool
     {
         $parts = explode('.', $token);
-        if (count($parts) !== 2) {
+        if (2 !== count($parts)) {
             return false;
         }
 
