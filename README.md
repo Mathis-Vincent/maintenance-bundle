@@ -1,3 +1,5 @@
+<p align="center"><img src=".github/logo.svg" alt="Symfony Maintenance Bundle logo" width="120"></p>
+
 # Symfony Maintenance Bundle
 
 [![CI](https://github.com/Mathis-Vincent/maintenance-bundle/actions/workflows/ci.yml/badge.svg)](https://github.com/Mathis-Vincent/maintenance-bundle/actions/workflows/ci.yml)
@@ -118,7 +120,7 @@ maintenance:
         - '%env(HELP_DESK_IP)%'
       allowed_roles:
         - 'ROLE_ADMIN'
-        - 'ROLE_SUPPORT'
+        - 'ROLE_HELP_DESK'
       template: "maintenance/503.html.twig"
       banner_template: "maintenance/banner.html.twig"
 ```
@@ -133,6 +135,22 @@ maintenance:
 | `excluded_routes` | `array`  | Route names (exact match) that stay available to everyone at this level.       |
 | `template`        | `string` | Twig template path for the 503 HTTP response displayed to blocked users.       |
 | `banner_template` | `string` | Twig template path for the warning banner displayed to authorized users.       |
+
+### Which roles to use:
+
+The roles in `role_lifetimes` and `allowed_roles` are your Symfony security roles: the ones your users hold (`getRoles()`) and the ones you define under `role_hierarchy` in `config/packages/security.yaml`. The bundle does not create any role, and a role your users hold directly does not need to be listed in `role_hierarchy`.
+
+```yaml
+# config/packages/security.yaml
+security:
+  role_hierarchy:
+    ROLE_HELP_DESK: ROLE_USER
+    ROLE_ADMIN: ROLE_HELP_DESK
+```
+
+Access is checked with `isGranted()`, so the hierarchy applies. With the hierarchy above, `allowed_roles: ['ROLE_HELP_DESK']` also lets `ROLE_ADMIN` users through.
+
+The cookie lifetime comes from the first role of `allowed_roles` that the user is granted, not from the role they actually hold. In that same example, a `ROLE_ADMIN` user gets the `ROLE_HELP_DESK` lifetime. To give them their own lifetime, list `ROLE_ADMIN` first in `allowed_roles`. A role without an entry in `role_lifetimes` gets 30 days.
 
 ---
 
