@@ -4,6 +4,7 @@
   "type": "symfony-bundle",
   "license": "MIT",
   "keywords": ["symfony", "bundle", "maintenance", "maintenance-mode"],
+  "homepage": "https://maintenance-bundle.mathis-vincent.com/",
   "authors": [
     {
       "name": "Mathis Vincent",
