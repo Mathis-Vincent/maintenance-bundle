@@ -28,6 +28,11 @@ class MaintenanceStatusCommand extends Command
     {
         $io = new SymfonyStyle($input, $output);
         $state = $this->maintenanceManager->getState();
+        $announcement = $this->maintenanceManager->getAnnouncement();
+
+        if (null !== $announcement) {
+            $io->note(sprintf('Maintenance announced for %s.', date('Y-m-d H:i', $announcement)));
+        }
 
         if (!$state || empty($state['active'])) {
             $io->success('Maintenance mode is inactive.');
@@ -47,6 +52,10 @@ class MaintenanceStatusCommand extends Command
         }
 
         $io->warning(sprintf('Maintenance mode is active with level: "%s".', $level));
+
+        if (isset($state['ends_at'])) {
+            $io->note(sprintf('It will end by itself on %s.', date('Y-m-d H:i', $state['ends_at'])));
+        }
 
         return Command::SUCCESS;
     }

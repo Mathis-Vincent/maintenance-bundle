@@ -10,25 +10,31 @@ use Symfony\Component\HttpKernel\KernelInterface;
 class MaintenanceManager
 {
     private string $stateFile;
+    private string $announcementFile;
 
     public function __construct(KernelInterface $kernel)
     {
         $this->stateFile = $kernel->getProjectDir().'/var/maintenance.json';
+        $this->announcementFile = $kernel->getProjectDir().'/var/maintenance_announcement.json';
     }
 
-    public function activate(string $level): void
+    /**
+     * @param int|null $duration seconds before the maintenance ends by itself, null to keep it until deactivated
+     */
+    public function activate(string $level, ?int $duration = null): void
     {
         $data = [
             'active' => true,
             'level' => $level,
         ];
 
-        $dir = dirname($this->stateFile);
-        if (!is_dir($dir)) {
-            mkdir($dir, 0o777, true);
+        if (null !== $duration) {
+            $data['ends_at'] = time() + $duration;
         }
 
-        file_put_contents($this->stateFile, json_encode($data));
+        $this->write($this->stateFile, $data);
+        // the announced maintenance has started: visitors must not keep seeing it as upcoming
+        $this->cancelAnnouncement();
     }
 
     public function deactivate(): void
@@ -40,11 +46,55 @@ class MaintenanceManager
 
     public function getState(): ?array
     {
-        if (!file_exists($this->stateFile)) {
+        $state = $this->read($this->stateFile);
+
+        // checked on read, so the maintenance still ends if the server can no longer be reached
+        if (isset($state['ends_at']) && $state['ends_at'] <= time()) {
             return null;
         }
 
-        $content = file_get_contents($this->stateFile);
+        return $state;
+    }
+
+    public function announce(int $startsAt): void
+    {
+        $this->write($this->announcementFile, ['starts_at' => $startsAt]);
+    }
+
+    public function cancelAnnouncement(): void
+    {
+        if (file_exists($this->announcementFile)) {
+            unlink($this->announcementFile);
+        }
+    }
+
+    /**
+     * Returns the announced start timestamp, null when nothing is announced or the date has passed.
+     */
+    public function getAnnouncement(): ?int
+    {
+        $startsAt = $this->read($this->announcementFile)['starts_at'] ?? null;
+
+        return $startsAt > time() ? $startsAt : null;
+    }
+
+    private function write(string $file, array $data): void
+    {
+        $dir = dirname($file);
+        if (!is_dir($dir)) {
+            mkdir($dir, 0o777, true);
+        }
+
+        file_put_contents($file, json_encode($data));
+    }
+
+    private function read(string $file): ?array
+    {
+        if (!file_exists($file)) {
+            return null;
+        }
+
+        $content = file_get_contents($file);
 
         return json_decode($content, true);
     }

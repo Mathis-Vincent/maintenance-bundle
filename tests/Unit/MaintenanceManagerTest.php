@@ -18,6 +18,7 @@ class MaintenanceManagerTest extends TestCase
     protected function tearDown(): void
     {
         @unlink($this->projectDir.'/var/maintenance.json');
+        @unlink($this->projectDir.'/var/maintenance_announcement.json');
         @rmdir($this->projectDir.'/var');
         @rmdir($this->projectDir);
     }
@@ -48,6 +49,48 @@ class MaintenanceManagerTest extends TestCase
         $this->manager()->deactivate();
 
         self::assertNull($this->manager()->getState());
+    }
+
+    public function testDurationStoresEndDate(): void
+    {
+        $this->manager()->activate('admin', 60);
+
+        self::assertEqualsWithDelta(time() + 60, $this->manager()->getState()['ends_at'] ?? null, 5);
+    }
+
+    public function testStateIsNullOnceDurationHasElapsed(): void
+    {
+        $this->manager()->activate('admin', -1);
+
+        self::assertNull($this->manager()->getState());
+    }
+
+    public function testAnnouncementIsReturnedUntilItsDate(): void
+    {
+        $startsAt = time() + 60;
+        $this->manager()->announce($startsAt);
+
+        self::assertSame($startsAt, $this->manager()->getAnnouncement());
+
+        $this->manager()->announce(time() - 1);
+
+        self::assertNull($this->manager()->getAnnouncement());
+    }
+
+    public function testCancelAnnouncement(): void
+    {
+        $this->manager()->announce(time() + 60);
+        $this->manager()->cancelAnnouncement();
+
+        self::assertNull($this->manager()->getAnnouncement());
+    }
+
+    public function testActivatingRemovesAnnouncement(): void
+    {
+        $this->manager()->announce(time() + 60);
+        $this->manager()->activate('admin');
+
+        self::assertNull($this->manager()->getAnnouncement());
     }
 
     private function manager(): MaintenanceManager
