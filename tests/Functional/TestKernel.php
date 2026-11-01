@@ -41,6 +41,11 @@ class TestKernel extends Kernel
         return new Response('Home');
     }
 
+    public function banner(): Response
+    {
+        return new Response($this->getContainer()->get('test.service_container')->get('twig')->createTemplate('{{ maintenance_banner() }}')->render());
+    }
+
     protected function configureContainer(ContainerConfigurator $container): void
     {
         $container->extension('framework', [
@@ -86,7 +91,13 @@ class TestKernel extends Kernel
                     'allowed_roles' => ['ROLE_ADMIN', 'ROLE_SUPPORT'],
                 ],
                 'broken' => ['template' => 'missing.html.twig', 'banner_template' => 'missing.html.twig'],
-                'partial' => ['template' => 'maintenance.html.twig', 'excluded_routes' => ['home']],
+                'partial' => [
+                    'template' => 'maintenance.html.twig',
+                    'banner_template' => 'banner.html.twig',
+                    'allowed_ip' => ['10.0.0.0/24'],
+                    'allowed_roles' => ['ROLE_ADMIN'],
+                    'excluded_routes' => ['home', 'banner_excluded'],
+                ],
             ],
         ]);
     }
@@ -95,5 +106,7 @@ class TestKernel extends Kernel
     {
         $routes->add('home', '/')->controller([$this, 'home']);
         $routes->add('other', '/other')->controller([$this, 'home']);
+        $routes->add('banner_excluded', '/banner-excluded')->controller([$this, 'banner']);
+        $routes->add('banner_limited', '/banner-limited')->controller([$this, 'banner']);
     }
 }

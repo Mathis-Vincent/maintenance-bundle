@@ -2,8 +2,10 @@
 
 namespace MathisVincent\MaintenanceBundle\Twig;
 
+use MathisVincent\MaintenanceBundle\Service\MaintenanceAccessChecker;
 use MathisVincent\MaintenanceBundle\Service\MaintenanceManager;
 use Symfony\Component\DependencyInjection\ParameterBag\ParameterBagInterface;
+use Symfony\Component\HttpFoundation\RequestStack;
 use Twig\Environment;
 use Twig\Extension\AbstractExtension;
 use Twig\TwigFunction;
@@ -12,7 +14,9 @@ class MaintenanceTwigExtension extends AbstractExtension
 {
     public function __construct(
         private MaintenanceManager $maintenanceManager,
+        private MaintenanceAccessChecker $accessChecker,
         private ParameterBagInterface $params,
+        private RequestStack $requestStack,
         private Environment $twig
     ) {
     }
@@ -57,10 +61,37 @@ class MaintenanceTwigExtension extends AbstractExtension
             return '';
         }
 
+        $request = $this->requestStack->getMainRequest();
+        $isExcluded = $request && $this->accessChecker->isExcludedRoute($request, $levelConfig);
+
+        // an excluded page is not in maintenance: only people who can bypass the level need the warning
+        if ($isExcluded
+            && !$this->accessChecker->hasValidToken($request, $level)
+            && null === $this->accessChecker->getAccessLifetime($request, $levelConfig, [])) {
+            return '';
+        }
+
         try {
-            return $this->twig->render($template);
+            return $this->twig->render($template, ['status' => ['page' => $this->describePageAccess($isExcluded, $levelConfig)]]);
         } catch (\Throwable $e) {
             return '';
         }
+    }
+
+    /**
+     * Says who can reach the current page. IP values stay out of it, as they may be private.
+     */
+    private function describePageAccess(bool $isExcluded, array $levelConfig): string
+    {
+        if ($isExcluded) {
+            return 'everyone';
+        }
+
+        $who = $levelConfig['allowed_roles'] ?? [];
+        if (!empty($levelConfig['allowed_ip'])) {
+            $who[] = 'allowed IPs';
+        }
+
+        return implode(', ', $who) ?: 'nobody';
     }
 }

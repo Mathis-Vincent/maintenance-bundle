@@ -164,7 +164,7 @@ php bin/console maintenance:deactivate
 
 The Twig extension (`MaintenanceTwigExtension`) provides three global functions:
 
-- **`{{ maintenance_banner() }}`**: Renders the configured banner template (`banner_template`) if maintenance mode is active.
+- **`{{ maintenance_banner() }}`**: Renders the configured banner template (`banner_template`) if maintenance mode is active. On a route listed in `excluded_routes`, it only renders for people who can bypass the level (IP, role or HMAC cookie).
 - **`{{ maintenance_is_active() }}`**: Returns `true` if maintenance mode is currently active.
 - **`{{ maintenance_level() }}`**: Returns the name of the active maintenance level (e.g., `admin`).
 
@@ -173,6 +173,14 @@ The Twig extension (`MaintenanceTwigExtension`) provides three global functions:
 - **Maintenance Active (`maintenance:activate admin`)**:
   - Unauthenticated or unauthorized visitors receive the 503 HTTP status page.
   - Authorized users (via IP, role, or HMAC cookie) navigate seamlessly and automatically receive a signed cookie mapped to their role duration.
+
+### Showing who can reach the page:
+
+The banner template receives `status.page`, which says who can reach the current route: `everyone` on an excluded route, otherwise the allowed roles and `allowed IPs` if the level has any (e.g. `ROLE_ADMIN, allowed IPs`), or `nobody`.
+
+```twig
+<div class="maintenance-banner">Maintenance in progress. This page is accessible by: {{ status.page }}</div>
+```
 
 ---
 

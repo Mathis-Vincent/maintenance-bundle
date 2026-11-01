@@ -24,7 +24,7 @@ class MaintenanceTwigExtensionTest extends KernelTestCase
     {
         $this->manager()->activate('support');
 
-        self::assertSame("on|support|<div class=\"banner\">Maintenance banner</div>\n", $this->render());
+        self::assertSame("on|support|<div class=\"banner\">Maintenance banner: ROLE_ADMIN, ROLE_SUPPORT</div>\n", $this->render());
     }
 
     public function testActiveLevelWithoutBanner(): void
