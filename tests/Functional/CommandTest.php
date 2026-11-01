@@ -49,6 +49,32 @@ class CommandTest extends KernelTestCase
         self::assertNull($this->manager()->getState());
     }
 
+    public function testStatusInactive(): void
+    {
+        $tester = $this->tester('maintenance:status');
+
+        self::assertSame(Command::SUCCESS, $tester->execute([]));
+        self::assertStringContainsString('inactive', $tester->getDisplay());
+    }
+
+    public function testStatusActive(): void
+    {
+        $tester = $this->tester('maintenance:status');
+        $this->manager()->activate('admin');
+
+        self::assertSame(Command::SUCCESS, $tester->execute([]));
+        self::assertStringContainsString('active with level: "admin"', $tester->getDisplay());
+    }
+
+    public function testStatusFlagsUnknownLevel(): void
+    {
+        $tester = $this->tester('maintenance:status');
+        $this->manager()->activate('ghost');
+
+        self::assertSame(Command::SUCCESS, $tester->execute([]));
+        self::assertStringContainsString('requests are not blocked', $tester->getDisplay());
+    }
+
     private function tester(string $name): CommandTester
     {
         return new CommandTester((new Application(self::bootKernel()))->find($name));

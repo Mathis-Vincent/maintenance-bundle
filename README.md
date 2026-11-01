@@ -135,7 +135,7 @@ maintenance:
 
 ## 4. Console Commands
 
-The bundle provides two console commands under the `maintenance:*` namespace.
+The bundle provides three console commands under the `maintenance:*` namespace.
 
 ### A. Activate Maintenance Mode
 
@@ -154,6 +154,14 @@ php bin/console maintenance:activate <level>
 ```bash
 php bin/console maintenance:deactivate
 ```
+
+### C. Check Maintenance Status
+
+```bash
+php bin/console maintenance:status
+```
+
+Displays whether maintenance mode is active and with which level. It also warns when the active level is not declared in your config, since requests are not blocked in that case. The command always exits with `0`.
 
 ---
 
