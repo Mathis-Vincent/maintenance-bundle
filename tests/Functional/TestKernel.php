@@ -86,6 +86,7 @@ class TestKernel extends Kernel
                     'allowed_roles' => ['ROLE_ADMIN', 'ROLE_SUPPORT'],
                 ],
                 'broken' => ['template' => 'missing.html.twig', 'banner_template' => 'missing.html.twig'],
+                'partial' => ['template' => 'maintenance.html.twig', 'excluded_routes' => ['home']],
             ],
         ]);
     }
@@ -93,5 +94,6 @@ class TestKernel extends Kernel
     protected function configureRoutes(RoutingConfigurator $routes): void
     {
         $routes->add('home', '/')->controller([$this, 'home']);
+        $routes->add('other', '/other')->controller([$this, 'home']);
     }
 }

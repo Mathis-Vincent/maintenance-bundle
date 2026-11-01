@@ -106,6 +106,8 @@ maintenance:
         - '%env(ADMIN_IP)%'
       allowed_roles:
         - 'ROLE_ADMIN'
+      excluded_routes:
+        - 'app_home'
       template: "maintenance/503.html.twig"
       banner_template: "maintenance/banner.html.twig"
 
@@ -128,6 +130,7 @@ maintenance:
 | `role_lifetimes`  | `array`  | Key-value mapping of Symfony user roles to bypass cookie lifetimes in seconds. |
 | `allowed_ip`      | `array`  | List of IP addresses allowed to bypass maintenance mode.                       |
 | `allowed_roles`   | `array`  | List of Symfony roles allowed to bypass maintenance mode.                      |
+| `excluded_routes` | `array`  | Route names (exact match) that stay available to everyone at this level.       |
 | `template`        | `string` | Twig template path for the 503 HTTP response displayed to blocked users.       |
 | `banner_template` | `string` | Twig template path for the warning banner displayed to authorized users.       |
 

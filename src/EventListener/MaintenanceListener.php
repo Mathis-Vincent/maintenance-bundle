@@ -59,6 +59,10 @@ class MaintenanceListener
         $levelConfig = $config['levels'][$level];
         $request = $event->getRequest();
 
+        if (\in_array($request->attributes->get('_route'), $levelConfig['excluded_routes'] ?? [], true)) {
+            return;
+        }
+
         $clientToken = $request->cookies->get(self::COOKIE_NAME);
         if ($clientToken && $this->tokenSigner->validateToken($clientToken, $level)) {
             return;

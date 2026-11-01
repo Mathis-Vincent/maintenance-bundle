@@ -164,6 +164,34 @@ class MaintenanceListenerTest extends WebTestCase
         self::assertResponseStatusCodeSame(503);
     }
 
+    public function testExcludedRouteStaysAvailableForEveryone(): void
+    {
+        $this->manager()->activate('partial');
+
+        $this->client->request('GET', '/');
+
+        self::assertResponseIsSuccessful();
+        self::assertResponseNotHasCookie(self::COOKIE);
+    }
+
+    public function testRouteNotExcludedIsBlocked(): void
+    {
+        $this->manager()->activate('partial');
+
+        $this->client->request('GET', '/other');
+
+        self::assertResponseStatusCodeSame(503);
+    }
+
+    public function testRouteExcludedOnAnotherLevelIsBlocked(): void
+    {
+        $this->manager()->activate('default');
+
+        $this->client->request('GET', '/');
+
+        self::assertResponseStatusCodeSame(503);
+    }
+
     public function testSubRequestsAreIgnored(): void
     {
         $this->manager()->activate('default');
