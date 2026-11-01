@@ -15,9 +15,6 @@
     </MissingOverrideAttribute>
   </file>
   <file src="src/EventListener/MaintenanceListener.php">
-    <PossiblyNullArgument>
-      <code><![CDATA[$clientIp]]></code>
-    </PossiblyNullArgument>
     <UndefinedInterfaceMethod>
       <code><![CDATA[$config]]></code>
     </UndefinedInterfaceMethod>

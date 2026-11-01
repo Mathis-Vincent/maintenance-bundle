@@ -106,6 +106,8 @@ maintenance:
         - '%env(ADMIN_IP)%'
       allowed_roles:
         - 'ROLE_ADMIN'
+      excluded_routes:
+        - 'app_home'
       template: "maintenance/503.html.twig"
       banner_template: "maintenance/banner.html.twig"
 
@@ -128,6 +130,7 @@ maintenance:
 | `role_lifetimes`  | `array`  | Key-value mapping of Symfony user roles to bypass cookie lifetimes in seconds. |
 | `allowed_ip`      | `array`  | List of IP addresses allowed to bypass maintenance mode.                       |
 | `allowed_roles`   | `array`  | List of Symfony roles allowed to bypass maintenance mode.                      |
+| `excluded_routes` | `array`  | Route names (exact match) that stay available to everyone at this level.       |
 | `template`        | `string` | Twig template path for the 503 HTTP response displayed to blocked users.       |
 | `banner_template` | `string` | Twig template path for the warning banner displayed to authorized users.       |
 
@@ -161,7 +164,7 @@ php bin/console maintenance:deactivate
 
 The Twig extension (`MaintenanceTwigExtension`) provides three global functions:
 
-- **`{{ maintenance_banner() }}`**: Renders the configured banner template (`banner_template`) if maintenance mode is active.
+- **`{{ maintenance_banner() }}`**: Renders the configured banner template (`banner_template`) if maintenance mode is active. On a route listed in `excluded_routes`, it only renders for people who can bypass the level (IP, role or HMAC cookie).
 - **`{{ maintenance_is_active() }}`**: Returns `true` if maintenance mode is currently active.
 - **`{{ maintenance_level() }}`**: Returns the name of the active maintenance level (e.g., `admin`).
 
@@ -170,6 +173,29 @@ The Twig extension (`MaintenanceTwigExtension`) provides three global functions:
 - **Maintenance Active (`maintenance:activate admin`)**:
   - Unauthenticated or unauthorized visitors receive the 503 HTTP status page.
   - Authorized users (via IP, role, or HMAC cookie) navigate seamlessly and automatically receive a signed cookie mapped to their role duration.
+
+### Showing who can reach the page:
+
+The banner template receives `status.page`, a translatable message saying who can reach the current route. Print it with the `trans` filter:
+
+```twig
+<div class="maintenance-banner">Maintenance in progress. This page is accessible by: {{ status.page|trans }}</div>
+```
+
+The bundle ships English and French translations in the `maintenance` domain. To change a text or add a language, declare the keys in your project, for example in `translations/maintenance.fr.yaml`:
+
+```yaml
+maintenance:
+  status:
+    page:
+      everyone: 'tout le monde'       # excluded route
+      nobody: 'personne'              # no allowed role or IP
+      roles: '%roles%'                # allowed roles only
+      ips: 'les IP autorisées'        # allowed IPs only
+      roles_and_ips: '%roles%, les IP autorisées'
+```
+
+`%roles%` is the comma-separated list of the level's `allowed_roles`. IP values are never displayed.
 
 ---
 

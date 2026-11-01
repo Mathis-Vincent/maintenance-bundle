@@ -1,0 +1,4 @@
+maintenance:
+  status:
+    page:
+      nobody: 'project override'

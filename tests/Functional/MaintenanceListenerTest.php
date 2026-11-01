@@ -164,6 +164,99 @@ class MaintenanceListenerTest extends WebTestCase
         self::assertResponseStatusCodeSame(503);
     }
 
+    public function testExcludedRouteStaysAvailableForEveryone(): void
+    {
+        $this->manager()->activate('partial');
+
+        $this->client->request('GET', '/');
+
+        self::assertResponseIsSuccessful();
+        self::assertResponseNotHasCookie(self::COOKIE);
+    }
+
+    public function testRouteNotExcludedIsBlocked(): void
+    {
+        $this->manager()->activate('partial');
+
+        $this->client->request('GET', '/other');
+
+        self::assertResponseStatusCodeSame(503);
+    }
+
+    public function testRouteExcludedOnAnotherLevelIsBlocked(): void
+    {
+        $this->manager()->activate('default');
+
+        $this->client->request('GET', '/');
+
+        self::assertResponseStatusCodeSame(503);
+    }
+
+    public function testBannerIsHiddenOnExcludedRouteForAnonymousVisitor(): void
+    {
+        $this->manager()->activate('partial');
+
+        $this->client->request('GET', '/banner-excluded');
+
+        self::assertResponseIsSuccessful();
+        self::assertSame('', $this->client->getResponse()->getContent());
+    }
+
+    public function testBannerIsHiddenOnExcludedRouteForUserWithoutAccess(): void
+    {
+        $this->manager()->activate('partial');
+        $this->client->loginUser($this->user('user'));
+
+        $this->client->request('GET', '/banner-excluded');
+
+        self::assertResponseIsSuccessful();
+        self::assertSame('', $this->client->getResponse()->getContent());
+    }
+
+    public function testBannerShowsOnExcludedRouteForAllowedRole(): void
+    {
+        $this->manager()->activate('partial');
+        $this->client->loginUser($this->user('admin'));
+
+        $this->client->request('GET', '/banner-excluded');
+
+        self::assertResponseIsSuccessful();
+        self::assertStringContainsString('Maintenance banner: everyone', (string) $this->client->getResponse()->getContent());
+    }
+
+    public function testBannerShowsOnExcludedRouteForAllowedIp(): void
+    {
+        $this->manager()->activate('partial');
+
+        $this->client->request('GET', '/banner-excluded', server: ['REMOTE_ADDR' => '10.0.0.42']);
+
+        self::assertResponseIsSuccessful();
+        self::assertStringContainsString('Maintenance banner: everyone', (string) $this->client->getResponse()->getContent());
+    }
+
+    public function testBannerShowsOnExcludedRouteForValidBypassCookie(): void
+    {
+        $this->manager()->activate('partial');
+        $token = static::getContainer()->get(MaintenanceTokenSigner::class)->generateToken(60, 'partial');
+        $this->client->getCookieJar()->set(new Cookie(self::COOKIE, $token));
+
+        $this->client->request('GET', '/banner-excluded');
+
+        self::assertResponseIsSuccessful();
+        self::assertStringContainsString('Maintenance banner: everyone', (string) $this->client->getResponse()->getContent());
+    }
+
+    public function testBannerStatusListsWhoCanReachALimitedPage(): void
+    {
+        $this->manager()->activate('partial');
+        $this->client->loginUser($this->user('admin'));
+
+        $this->client->request('GET', '/banner-limited');
+
+        self::assertResponseIsSuccessful();
+        self::assertStringContainsString('Maintenance banner: ROLE_ADMIN, allowed IPs', (string) $this->client->getResponse()->getContent());
+    }
+
     public function testSubRequestsAreIgnored(): void
     {
         $this->manager()->activate('default');

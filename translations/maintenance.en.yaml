@@ -1,0 +1,8 @@
+maintenance:
+  status:
+    page:
+      everyone: 'everyone'
+      nobody: 'nobody'
+      roles: '%roles%'
+      ips: 'allowed IPs'
+      roles_and_ips: '%roles%, allowed IPs'
