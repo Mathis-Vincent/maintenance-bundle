@@ -52,6 +52,7 @@ class TestKernel extends Kernel
             'secret' => 'test-secret',
             'test' => true,
             'session' => ['storage_factory_id' => 'session.storage.factory.mock_file'],
+            'translator' => ['default_path' => __DIR__.'/translations'],
         ]);
 
         $container->extension('security', [
@@ -91,6 +92,8 @@ class TestKernel extends Kernel
                     'allowed_roles' => ['ROLE_ADMIN', 'ROLE_SUPPORT'],
                 ],
                 'broken' => ['template' => 'missing.html.twig', 'banner_template' => 'missing.html.twig'],
+                'ip_only' => ['template' => 'maintenance.html.twig', 'banner_template' => 'banner.html.twig', 'allowed_ip' => ['10.0.0.0/24']],
+                'closed' => ['template' => 'maintenance.html.twig', 'banner_template' => 'banner.html.twig'],
                 'partial' => [
                     'template' => 'maintenance.html.twig',
                     'banner_template' => 'banner.html.twig',

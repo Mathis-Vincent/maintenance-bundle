@@ -6,6 +6,7 @@ use MathisVincent\MaintenanceBundle\Service\MaintenanceAccessChecker;
 use MathisVincent\MaintenanceBundle\Service\MaintenanceManager;
 use Symfony\Component\DependencyInjection\ParameterBag\ParameterBagInterface;
 use Symfony\Component\HttpFoundation\RequestStack;
+use Symfony\Component\Translation\TranslatableMessage;
 use Twig\Environment;
 use Twig\Extension\AbstractExtension;
 use Twig\TwigFunction;
@@ -81,17 +82,19 @@ class MaintenanceTwigExtension extends AbstractExtension
     /**
      * Says who can reach the current page. IP values stay out of it, as they may be private.
      */
-    private function describePageAccess(bool $isExcluded, array $levelConfig): string
+    private function describePageAccess(bool $isExcluded, array $levelConfig): TranslatableMessage
     {
-        if ($isExcluded) {
-            return 'everyone';
-        }
+        $roles = $levelConfig['allowed_roles'] ?? [];
+        $hasIps = !empty($levelConfig['allowed_ip']);
 
-        $who = $levelConfig['allowed_roles'] ?? [];
-        if (!empty($levelConfig['allowed_ip'])) {
-            $who[] = 'allowed IPs';
-        }
+        $case = match (true) {
+            $isExcluded => 'everyone',
+            $roles && $hasIps => 'roles_and_ips',
+            (bool) $roles => 'roles',
+            $hasIps => 'ips',
+            default => 'nobody',
+        };
 
-        return implode(', ', $who) ?: 'nobody';
+        return new TranslatableMessage('maintenance.status.page.'.$case, ['%roles%' => implode(', ', $roles)], 'maintenance');
     }
 }

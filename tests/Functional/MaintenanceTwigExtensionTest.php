@@ -27,6 +27,28 @@ class MaintenanceTwigExtensionTest extends KernelTestCase
         self::assertSame("on|support|<div class=\"banner\">Maintenance banner: ROLE_ADMIN, ROLE_SUPPORT</div>\n", $this->render());
     }
 
+    public function testBannerStatusForLevelWithOnlyAllowedIps(): void
+    {
+        $this->manager()->activate('ip_only');
+
+        self::assertSame("on|ip_only|<div class=\"banner\">Maintenance banner: allowed IPs</div>\n", $this->render());
+    }
+
+    public function testBannerStatusForLevelWithoutAccess(): void
+    {
+        $this->manager()->activate('closed');
+
+        self::assertSame("on|closed|<div class=\"banner\">Maintenance banner: nobody</div>\n", $this->render());
+    }
+
+    public function testBundleTranslationsCanBeOverriddenByTheProject(): void
+    {
+        $translator = static::getContainer()->get('translator');
+
+        self::assertSame('tout le monde', $translator->trans('maintenance.status.page.everyone', [], 'maintenance', 'fr'));
+        self::assertSame('project override', $translator->trans('maintenance.status.page.nobody', [], 'maintenance', 'fr'));
+    }
+
     public function testActiveLevelWithoutBanner(): void
     {
         $this->manager()->activate('admin');

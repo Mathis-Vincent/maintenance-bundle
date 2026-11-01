@@ -176,11 +176,26 @@ The Twig extension (`MaintenanceTwigExtension`) provides three global functions:
 
 ### Showing who can reach the page:
 
-The banner template receives `status.page`, which says who can reach the current route: `everyone` on an excluded route, otherwise the allowed roles and `allowed IPs` if the level has any (e.g. `ROLE_ADMIN, allowed IPs`), or `nobody`.
+The banner template receives `status.page`, a translatable message saying who can reach the current route. Print it with the `trans` filter:
 
 ```twig
-<div class="maintenance-banner">Maintenance in progress. This page is accessible by: {{ status.page }}</div>
+<div class="maintenance-banner">Maintenance in progress. This page is accessible by: {{ status.page|trans }}</div>
 ```
+
+The bundle ships English and French translations in the `maintenance` domain. To change a text or add a language, declare the keys in your project, for example in `translations/maintenance.fr.yaml`:
+
+```yaml
+maintenance:
+  status:
+    page:
+      everyone: 'tout le monde'       # excluded route
+      nobody: 'personne'              # no allowed role or IP
+      roles: '%roles%'                # allowed roles only
+      ips: 'les IP autorisées'        # allowed IPs only
+      roles_and_ips: '%roles%, les IP autorisées'
+```
+
+`%roles%` is the comma-separated list of the level's `allowed_roles`. IP values are never displayed.
 
 ---
 
