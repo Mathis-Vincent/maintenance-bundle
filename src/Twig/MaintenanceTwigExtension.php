@@ -28,7 +28,23 @@ class MaintenanceTwigExtension extends AbstractExtension
             new TwigFunction('maintenance_is_active', [$this, 'isMaintenanceActive']),
             new TwigFunction('maintenance_level', [$this, 'getMaintenanceLevel']),
             new TwigFunction('maintenance_banner', [$this, 'renderBanner'], ['is_safe' => ['html']]),
+            new TwigFunction('maintenance_end', [$this, 'getMaintenanceEnd']),
+            new TwigFunction('maintenance_announcement', [$this, 'getAnnouncement']),
         ];
+    }
+
+    public function getMaintenanceEnd(): ?\DateTimeImmutable
+    {
+        $endsAt = $this->maintenanceManager->getState()['ends_at'] ?? null;
+
+        return null !== $endsAt ? (new \DateTimeImmutable())->setTimestamp($endsAt) : null;
+    }
+
+    public function getAnnouncement(): ?\DateTimeImmutable
+    {
+        $startsAt = $this->maintenanceManager->getAnnouncement();
+
+        return null !== $startsAt ? (new \DateTimeImmutable())->setTimestamp($startsAt) : null;
     }
 
     public function isMaintenanceActive(): bool

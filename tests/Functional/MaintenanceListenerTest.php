@@ -49,6 +49,15 @@ class MaintenanceListenerTest extends WebTestCase
         self::assertStringContainsString('Maintenance in progress', (string) $this->client->getResponse()->getContent());
     }
 
+    public function testRequestPassesOnceDurationHasElapsed(): void
+    {
+        $this->manager()->activate('default', -1);
+
+        $this->client->request('GET', '/');
+
+        self::assertResponseIsSuccessful();
+    }
+
     public function testUnknownLevelLetsRequestThrough(): void
     {
         $this->manager()->activate('ghost');

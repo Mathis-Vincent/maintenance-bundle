@@ -138,7 +138,7 @@ maintenance:
 
 ## 4. Console Commands
 
-The bundle provides three console commands under the `maintenance:*` namespace.
+The bundle provides four console commands under the `maintenance:*` namespace.
 
 ### A. Activate Maintenance Mode
 
@@ -148,9 +148,14 @@ php bin/console maintenance:activate
 
 # Activate maintenance mode for any level declared in your config (e.g., "admin")
 php bin/console maintenance:activate <level>
+
+# End the maintenance by itself after a duration in seconds (here, 2 hours)
+php bin/console maintenance:activate <level> --duration=7200
 ```
 
 > **Validation**: Activating an undeclared level (e.g., `php bin/console maintenance:activate non_existent`) will raise an error and fail gracefully.
+
+With `--duration`, the site reopens at the end date even if you can no longer reach the server: no cron or worker is involved, the date is checked on each request. The end date can be shown to visitors, see [Showing the end date](#showing-the-end-date).
 
 ### B. Deactivate Maintenance Mode
 
@@ -164,17 +169,31 @@ php bin/console maintenance:deactivate
 php bin/console maintenance:status
 ```
 
-Displays whether maintenance mode is active and with which level. It also warns when the active level is not declared in your config, since requests are not blocked in that case. The command always exits with `0`.
+Displays whether maintenance mode is active, with which level and until when, and any announced maintenance. It also warns when the active level is not declared in your config, since requests are not blocked in that case. The command always exits with `0`.
+
+### D. Announce a Maintenance
+
+```bash
+# Announce a date (anything PHP's strtotime() understands, in the server's timezone)
+php bin/console maintenance:announce "2026-12-01 22:00"
+
+# Remove the announcement
+php bin/console maintenance:announce --cancel
+```
+
+An announcement only informs visitors, see [Showing an announcement](#showing-an-announcement): it does **not** start the maintenance, you still run `maintenance:activate` when the time comes. It disappears by itself once the date has passed, or when a maintenance is activated.
 
 ---
 
 ## 5. Displaying the Maintenance Banner
 
-The Twig extension (`MaintenanceTwigExtension`) provides three global functions:
+The Twig extension (`MaintenanceTwigExtension`) provides five global functions:
 
 - **`{{ maintenance_banner() }}`**: Renders the configured banner template (`banner_template`) if maintenance mode is active. On a route listed in `excluded_routes`, it only renders for people who can bypass the level (IP, role or HMAC cookie).
 - **`{{ maintenance_is_active() }}`**: Returns `true` if maintenance mode is currently active.
 - **`{{ maintenance_level() }}`**: Returns the name of the active maintenance level (e.g., `admin`).
+- **`{{ maintenance_end() }}`**: Returns the end date of the active maintenance as a `DateTimeImmutable`, `null` without `--duration`.
+- **`{{ maintenance_announcement() }}`**: Returns the announced date as a `DateTimeImmutable`, `null` when nothing is announced.
 
 ### Behavior Overview:
 - **Normal Mode**: `{{ maintenance_banner() }}` returns an empty string.
@@ -204,6 +223,26 @@ maintenance:
 ```
 
 `%roles%` is the comma-separated list of the level's `allowed_roles`. IP values are never displayed.
+
+### Showing the end date:
+
+In your maintenance page (`template`) or banner:
+
+```twig
+{% if maintenance_end() %}
+    <p>Back on {{ maintenance_end()|date('d/m/Y H:i') }}</p>
+{% endif %}
+```
+
+### Showing an announcement:
+
+In your base template, so that every visitor sees it:
+
+```twig
+{% if maintenance_announcement() %}
+    <div class="maintenance-announcement">Maintenance planned on {{ maintenance_announcement()|date('d/m/Y H:i') }}</div>
+{% endif %}
+```
 
 ---
 

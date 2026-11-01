@@ -12,7 +12,33 @@ class MaintenanceTwigExtensionTest extends KernelTestCase
     protected function tearDown(): void
     {
         $this->manager()->deactivate();
+        $this->manager()->cancelAnnouncement();
         parent::tearDown();
+    }
+
+    public function testEndDateIsAvailable(): void
+    {
+        $template = '{{ maintenance_end() ? maintenance_end()|date("U") : "none" }}';
+        $twig = static::getContainer()->get('twig');
+
+        self::assertSame('none', $twig->createTemplate($template)->render());
+
+        $this->manager()->activate('default', 60);
+
+        self::assertEqualsWithDelta(time() + 60, (int) $twig->createTemplate($template)->render(), 5);
+    }
+
+    public function testAnnouncementIsAvailable(): void
+    {
+        $template = '{{ maintenance_announcement() ? maintenance_announcement()|date("U") : "none" }}';
+        $twig = static::getContainer()->get('twig');
+
+        self::assertSame('none', $twig->createTemplate($template)->render());
+
+        $startsAt = time() + 60;
+        $this->manager()->announce($startsAt);
+
+        self::assertSame((string) $startsAt, $twig->createTemplate($template)->render());
     }
 
     public function testInactive(): void
