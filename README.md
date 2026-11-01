@@ -1,3 +1,5 @@
+<p align="center"><img src=".github/logo.svg" alt="Symfony Maintenance Bundle logo" width="120"></p>
+
 # Symfony Maintenance Bundle
 
 [![CI](https://github.com/Mathis-Vincent/maintenance-bundle/actions/workflows/ci.yml/badge.svg)](https://github.com/Mathis-Vincent/maintenance-bundle/actions/workflows/ci.yml)
@@ -106,6 +108,8 @@ maintenance:
         - '%env(ADMIN_IP)%'
       allowed_roles:
         - 'ROLE_ADMIN'
+      excluded_routes:
+        - 'app_home'
       template: "maintenance/503.html.twig"
       banner_template: "maintenance/banner.html.twig"
 
@@ -116,7 +120,7 @@ maintenance:
         - '%env(HELP_DESK_IP)%'
       allowed_roles:
         - 'ROLE_ADMIN'
-        - 'ROLE_SUPPORT'
+        - 'ROLE_HELP_DESK'
       template: "maintenance/503.html.twig"
       banner_template: "maintenance/banner.html.twig"
 ```
@@ -128,14 +132,31 @@ maintenance:
 | `role_lifetimes`  | `array`  | Key-value mapping of Symfony user roles to bypass cookie lifetimes in seconds. |
 | `allowed_ip`      | `array`  | List of IP addresses allowed to bypass maintenance mode.                       |
 | `allowed_roles`   | `array`  | List of Symfony roles allowed to bypass maintenance mode.                      |
+| `excluded_routes` | `array`  | Route names (exact match) that stay available to everyone at this level.       |
 | `template`        | `string` | Twig template path for the 503 HTTP response displayed to blocked users.       |
 | `banner_template` | `string` | Twig template path for the warning banner displayed to authorized users.       |
+
+### Which roles to use:
+
+The roles in `role_lifetimes` and `allowed_roles` are your Symfony security roles: the ones your users hold (`getRoles()`) and the ones you define under `role_hierarchy` in `config/packages/security.yaml`. The bundle does not create any role, and a role your users hold directly does not need to be listed in `role_hierarchy`.
+
+```yaml
+# config/packages/security.yaml
+security:
+  role_hierarchy:
+    ROLE_HELP_DESK: ROLE_USER
+    ROLE_ADMIN: ROLE_HELP_DESK
+```
+
+Access is checked with `isGranted()`, so the hierarchy applies. With the hierarchy above, `allowed_roles: ['ROLE_HELP_DESK']` also lets `ROLE_ADMIN` users through.
+
+The cookie lifetime comes from the first role of `allowed_roles` that the user is granted, not from the role they actually hold. In that same example, a `ROLE_ADMIN` user gets the `ROLE_HELP_DESK` lifetime. To give them their own lifetime, list `ROLE_ADMIN` first in `allowed_roles`. A role without an entry in `role_lifetimes` gets 30 days.
 
 ---
 
 ## 4. Console Commands
 
-The bundle provides two console commands under the `maintenance:*` namespace.
+The bundle provides four console commands under the `maintenance:*` namespace.
 
 ### A. Activate Maintenance Mode
 
@@ -145,9 +166,14 @@ php bin/console maintenance:activate
 
 # Activate maintenance mode for any level declared in your config (e.g., "admin")
 php bin/console maintenance:activate <level>
+
+# End the maintenance by itself after a duration in seconds (here, 2 hours)
+php bin/console maintenance:activate <level> --duration=7200
 ```
 
 > **Validation**: Activating an undeclared level (e.g., `php bin/console maintenance:activate non_existent`) will raise an error and fail gracefully.
+
+With `--duration`, the site reopens at the end date even if you can no longer reach the server: no cron or worker is involved, the date is checked on each request. The end date can be shown to visitors, see [Showing the end date](#showing-the-end-date).
 
 ### B. Deactivate Maintenance Mode
 
@@ -155,21 +181,86 @@ php bin/console maintenance:activate <level>
 php bin/console maintenance:deactivate
 ```
 
+### C. Check Maintenance Status
+
+```bash
+php bin/console maintenance:status
+```
+
+Displays whether maintenance mode is active, with which level and until when, and any announced maintenance. It also warns when the active level is not declared in your config, since requests are not blocked in that case. The command always exits with `0`.
+
+### D. Announce a Maintenance
+
+```bash
+# Announce a date (anything PHP's strtotime() understands, in the server's timezone)
+php bin/console maintenance:announce "2026-12-01 22:00"
+
+# Remove the announcement
+php bin/console maintenance:announce --cancel
+```
+
+An announcement only informs visitors, see [Showing an announcement](#showing-an-announcement): it does **not** start the maintenance, you still run `maintenance:activate` when the time comes. It disappears by itself once the date has passed, or when a maintenance is activated.
+
 ---
 
 ## 5. Displaying the Maintenance Banner
 
-The Twig extension (`MaintenanceTwigExtension`) provides three global functions:
+The Twig extension (`MaintenanceTwigExtension`) provides five global functions:
 
-- **`{{ maintenance_banner() }}`**: Renders the configured banner template (`banner_template`) if maintenance mode is active.
+- **`{{ maintenance_banner() }}`**: Renders the configured banner template (`banner_template`) if maintenance mode is active. On a route listed in `excluded_routes`, it only renders for people who can bypass the level (IP, role or HMAC cookie).
 - **`{{ maintenance_is_active() }}`**: Returns `true` if maintenance mode is currently active.
 - **`{{ maintenance_level() }}`**: Returns the name of the active maintenance level (e.g., `admin`).
+- **`{{ maintenance_end() }}`**: Returns the end date of the active maintenance as a `DateTimeImmutable`, `null` without `--duration`.
+- **`{{ maintenance_announcement() }}`**: Returns the announced date as a `DateTimeImmutable`, `null` when nothing is announced.
 
 ### Behavior Overview:
 - **Normal Mode**: `{{ maintenance_banner() }}` returns an empty string.
 - **Maintenance Active (`maintenance:activate admin`)**:
   - Unauthenticated or unauthorized visitors receive the 503 HTTP status page.
   - Authorized users (via IP, role, or HMAC cookie) navigate seamlessly and automatically receive a signed cookie mapped to their role duration.
+
+### Showing who can reach the page:
+
+The banner template receives `status.page`, a translatable message saying who can reach the current route. Print it with the `trans` filter:
+
+```twig
+<div class="maintenance-banner">Maintenance in progress. This page is accessible by: {{ status.page|trans }}</div>
+```
+
+The bundle ships English and French translations in the `maintenance` domain. To change a text or add a language, declare the keys in your project, for example in `translations/maintenance.fr.yaml`:
+
+```yaml
+maintenance:
+  status:
+    page:
+      everyone: 'tout le monde'       # excluded route
+      nobody: 'personne'              # no allowed role or IP
+      roles: '%roles%'                # allowed roles only
+      ips: 'les IP autorisées'        # allowed IPs only
+      roles_and_ips: '%roles%, les IP autorisées'
+```
+
+`%roles%` is the comma-separated list of the level's `allowed_roles`. IP values are never displayed.
+
+### Showing the end date:
+
+In your maintenance page (`template`) or banner:
+
+```twig
+{% if maintenance_end() %}
+    <p>Back on {{ maintenance_end()|date('d/m/Y H:i') }}</p>
+{% endif %}
+```
+
+### Showing an announcement:
+
+In your base template, so that every visitor sees it:
+
+```twig
+{% if maintenance_announcement() %}
+    <div class="maintenance-announcement">Maintenance planned on {{ maintenance_announcement()|date('d/m/Y H:i') }}</div>
+{% endif %}
+```
 
 ---
 

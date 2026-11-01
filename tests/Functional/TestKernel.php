@@ -41,12 +41,18 @@ class TestKernel extends Kernel
         return new Response('Home');
     }
 
+    public function banner(): Response
+    {
+        return new Response($this->getContainer()->get('test.service_container')->get('twig')->createTemplate('{{ maintenance_banner() }}')->render());
+    }
+
     protected function configureContainer(ContainerConfigurator $container): void
     {
         $container->extension('framework', [
             'secret' => 'test-secret',
             'test' => true,
             'session' => ['storage_factory_id' => 'session.storage.factory.mock_file'],
+            'translator' => ['default_path' => __DIR__.'/translations'],
         ]);
 
         $container->extension('security', [
@@ -86,6 +92,15 @@ class TestKernel extends Kernel
                     'allowed_roles' => ['ROLE_ADMIN', 'ROLE_SUPPORT'],
                 ],
                 'broken' => ['template' => 'missing.html.twig', 'banner_template' => 'missing.html.twig'],
+                'ip_only' => ['template' => 'maintenance.html.twig', 'banner_template' => 'banner.html.twig', 'allowed_ip' => ['10.0.0.0/24']],
+                'closed' => ['template' => 'maintenance.html.twig', 'banner_template' => 'banner.html.twig'],
+                'partial' => [
+                    'template' => 'maintenance.html.twig',
+                    'banner_template' => 'banner.html.twig',
+                    'allowed_ip' => ['10.0.0.0/24'],
+                    'allowed_roles' => ['ROLE_ADMIN'],
+                    'excluded_routes' => ['home', 'banner_excluded'],
+                ],
             ],
         ]);
     }
@@ -93,5 +108,8 @@ class TestKernel extends Kernel
     protected function configureRoutes(RoutingConfigurator $routes): void
     {
         $routes->add('home', '/')->controller([$this, 'home']);
+        $routes->add('other', '/other')->controller([$this, 'home']);
+        $routes->add('banner_excluded', '/banner-excluded')->controller([$this, 'banner']);
+        $routes->add('banner_limited', '/banner-limited')->controller([$this, 'banner']);
     }
 }

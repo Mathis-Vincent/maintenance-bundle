@@ -12,7 +12,33 @@ class MaintenanceTwigExtensionTest extends KernelTestCase
     protected function tearDown(): void
     {
         $this->manager()->deactivate();
+        $this->manager()->cancelAnnouncement();
         parent::tearDown();
+    }
+
+    public function testEndDateIsAvailable(): void
+    {
+        $template = '{{ maintenance_end() ? maintenance_end()|date("U") : "none" }}';
+        $twig = static::getContainer()->get('twig');
+
+        self::assertSame('none', $twig->createTemplate($template)->render());
+
+        $this->manager()->activate('default', 60);
+
+        self::assertEqualsWithDelta(time() + 60, (int) $twig->createTemplate($template)->render(), 5);
+    }
+
+    public function testAnnouncementIsAvailable(): void
+    {
+        $template = '{{ maintenance_announcement() ? maintenance_announcement()|date("U") : "none" }}';
+        $twig = static::getContainer()->get('twig');
+
+        self::assertSame('none', $twig->createTemplate($template)->render());
+
+        $startsAt = time() + 60;
+        $this->manager()->announce($startsAt);
+
+        self::assertSame((string) $startsAt, $twig->createTemplate($template)->render());
     }
 
     public function testInactive(): void
@@ -24,7 +50,29 @@ class MaintenanceTwigExtensionTest extends KernelTestCase
     {
         $this->manager()->activate('support');
 
-        self::assertSame("on|support|<div class=\"banner\">Maintenance banner</div>\n", $this->render());
+        self::assertSame("on|support|<div class=\"banner\">Maintenance banner: ROLE_ADMIN, ROLE_SUPPORT</div>\n", $this->render());
+    }
+
+    public function testBannerStatusForLevelWithOnlyAllowedIps(): void
+    {
+        $this->manager()->activate('ip_only');
+
+        self::assertSame("on|ip_only|<div class=\"banner\">Maintenance banner: allowed IPs</div>\n", $this->render());
+    }
+
+    public function testBannerStatusForLevelWithoutAccess(): void
+    {
+        $this->manager()->activate('closed');
+
+        self::assertSame("on|closed|<div class=\"banner\">Maintenance banner: nobody</div>\n", $this->render());
+    }
+
+    public function testBundleTranslationsCanBeOverriddenByTheProject(): void
+    {
+        $translator = static::getContainer()->get('translator');
+
+        self::assertSame('tout le monde', $translator->trans('maintenance.status.page.everyone', [], 'maintenance', 'fr'));
+        self::assertSame('project override', $translator->trans('maintenance.status.page.nobody', [], 'maintenance', 'fr'));
     }
 
     public function testActiveLevelWithoutBanner(): void

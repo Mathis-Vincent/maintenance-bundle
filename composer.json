@@ -4,6 +4,7 @@
   "type": "symfony-bundle",
   "license": "MIT",
   "keywords": ["symfony", "bundle", "maintenance", "maintenance-mode"],
+  "homepage": "https://maintenance-bundle.mathis-vincent.com/",
   "authors": [
     {
       "name": "Mathis Vincent",
@@ -18,6 +19,7 @@
     "symfony/event-dispatcher": "^6.4 || ^7.0 || ^8.0",
     "symfony/http-kernel": "^6.4 || ^7.0 || ^8.0",
     "symfony/security-bundle": "^6.4 || ^7.0 || ^8.0",
+    "symfony/translation": "^6.4 || ^7.0 || ^8.0",
     "symfony/yaml": "^6.4 || ^7.0 || ^8.0",
     "twig/twig": "^3.0"
   },
