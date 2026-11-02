@@ -268,7 +268,7 @@ In your base template, so that every visitor sees it:
 
 ## 6. Reacting to Maintenance Changes
 
-The bundle dispatches an event whenever the maintenance changes, whichever way it was triggered:
+The bundle dispatches an event whenever the maintenance is activated, deactivated or announced (commands or `MaintenanceManager`). `endsAt` and `startsAt` are integer Unix timestamps. A maintenance ending by itself after `--duration` dispatches no event:
 
 - `MathisVincent\MaintenanceBundle\Event\MaintenanceActivatedEvent` (`level`, `endsAt` or `null`)
 - `MathisVincent\MaintenanceBundle\Event\MaintenanceDeactivatedEvent` (`level`), only when a maintenance was active
