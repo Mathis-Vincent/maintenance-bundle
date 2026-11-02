@@ -16,17 +16,19 @@ jobs:
           php-version: '8.4'
           coverage: none
       - uses: ramsey/composer-install@v3
+      - run: composer validate --strict
       - run: vendor/bin/php-cs-fixer fix --dry-run --diff
       - run: vendor/bin/psalm --no-cache --output-format=github
 
   tests:
-    name: PHP ${{ matrix.php }} / Symfony ${{ matrix.symfony }}
+    name: PHP ${{ matrix.php }} / Symfony ${{ matrix.symfony }}${{ matrix.deps == 'lowest' && ' / lowest' || '' }}
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
       matrix:
         include:
           - { php: '8.2', symfony: '6.4.*' }
+          - { php: '8.2', symfony: '6.4.*', deps: lowest }
           - { php: '8.3', symfony: '7.4.*' }
           - { php: '8.4', symfony: '8.*', coverage: true }
           - { php: '8.5', symfony: '8.*' }
@@ -46,7 +48,7 @@ jobs:
           composer global require --no-progress --no-scripts symfony/flex
       - uses: ramsey/composer-install@v3
         with:
-          dependency-versions: highest
+          dependency-versions: ${{ matrix.deps || 'highest' }}
 
       - if: env.COVERAGE != 'true'
         run: vendor/bin/phpunit
