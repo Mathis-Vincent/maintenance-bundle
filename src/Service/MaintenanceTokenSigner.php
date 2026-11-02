@@ -16,11 +16,12 @@ class MaintenanceTokenSigner
         $this->secret = $params->get('kernel.secret');
     }
 
-    public function generateToken(int $lifetimeSeconds, string $level): string
+    public function generateToken(int $lifetimeSeconds, string $level, string $id): string
     {
         $payload = [
             'exp' => time() + $lifetimeSeconds,
             'level' => $level,
+            'id' => $id,
             'nonce' => bin2hex(random_bytes(16)),
         ];
 
@@ -31,7 +32,7 @@ class MaintenanceTokenSigner
         return $base64Payload.'.'.$signature;
     }
 
-    public function validateToken(string $token, string $level): bool
+    public function validateToken(string $token, string $level, string $id): bool
     {
         $parts = explode('.', $token);
         if (2 !== count($parts)) {
@@ -56,7 +57,7 @@ class MaintenanceTokenSigner
             return false;
         }
 
-        // a token only bypasses the level it was issued for
-        return ($payload['level'] ?? null) === $level;
+        // a token only bypasses the level and the maintenance it was issued for
+        return ($payload['level'] ?? null) === $level && ($payload['id'] ?? null) === $id;
     }
 }

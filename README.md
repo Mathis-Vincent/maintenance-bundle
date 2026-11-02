@@ -35,6 +35,7 @@ This bundle allows you to put your application in maintenance mode without inter
 ### Key Features:
 - **Modular Maintenance Levels**: Configure multiple levels (e.g., `default`, `admin`, `help_desk`) with custom permissions and templates.
 - **Automatic Role-Based Cookie Bypass**: Automatically generates a cryptographically signed secure cookie when an authorized user accesses the application.
+- **Cookies Reset Per Maintenance**: Each activation gets a unique ID signed into the cookie, so cookies from a previous maintenance stop working.
 - **Role-Based Lifetimes**: Configure cookie duration globally per user role (e.g., 7 days for `ROLE_ADMIN`, 30 days for `ROLE_HELP_DESK`).
 - **Hybrid Restrictions**: Flexible combination of rules by IP address, user roles (`ROLE_ADMIN`, `ROLE_SUPPORT`), and/or cookies.
 - **Persistent Warning Banner (UX)**: Displays a customizable banner for authorized users navigating during maintenance.

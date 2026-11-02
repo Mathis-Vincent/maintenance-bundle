@@ -25,11 +25,11 @@ class MaintenanceAccessChecker
         return \in_array($request->attributes->get('_route'), $levelConfig['excluded_routes'] ?? [], true);
     }
 
-    public function hasValidToken(Request $request, string $level): bool
+    public function hasValidToken(Request $request, string $level, string $id): bool
     {
         $token = $request->cookies->get(self::COOKIE_NAME);
 
-        return $token && $this->tokenSigner->validateToken($token, $level);
+        return $token && $this->tokenSigner->validateToken($token, $level, $id);
     }
 
     /**

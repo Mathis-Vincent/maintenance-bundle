@@ -26,6 +26,8 @@ class MaintenanceManager
         $data = [
             'active' => true,
             'level' => $level,
+            // identifies this maintenance: bypass tokens from a previous one are rejected
+            'id' => bin2hex(random_bytes(16)),
         ];
 
         if (null !== $duration) {

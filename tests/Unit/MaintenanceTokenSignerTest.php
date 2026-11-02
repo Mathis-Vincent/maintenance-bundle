@@ -13,54 +13,61 @@ class MaintenanceTokenSignerTest extends TestCase
     {
         $signer = $this->signer();
 
-        self::assertTrue($signer->validateToken($signer->generateToken(60, 'admin'), 'admin'));
+        self::assertTrue($signer->validateToken($signer->generateToken(60, 'admin', 'id'), 'admin', 'id'));
     }
 
     public function testTokenFromAnotherLevelIsRejected(): void
     {
         $signer = $this->signer();
 
-        self::assertFalse($signer->validateToken($signer->generateToken(60, 'admin'), 'default'));
+        self::assertFalse($signer->validateToken($signer->generateToken(60, 'admin', 'id'), 'default', 'id'));
     }
 
     public function testTokensAreUnique(): void
     {
         $signer = $this->signer();
 
-        self::assertNotSame($signer->generateToken(60, 'admin'), $signer->generateToken(60, 'admin'));
+        self::assertNotSame($signer->generateToken(60, 'admin', 'id'), $signer->generateToken(60, 'admin', 'id'));
+    }
+
+    public function testTokenFromAnotherMaintenanceIsRejected(): void
+    {
+        $signer = $this->signer();
+
+        self::assertFalse($signer->validateToken($signer->generateToken(60, 'admin', 'old'), 'admin', 'new'));
     }
 
     public function testExpiredTokenIsRejected(): void
     {
         $signer = $this->signer();
 
-        self::assertFalse($signer->validateToken($signer->generateToken(-1, 'admin'), 'admin'));
+        self::assertFalse($signer->validateToken($signer->generateToken(-1, 'admin', 'id'), 'admin', 'id'));
     }
 
     public function testTokenSignedWithAnotherSecretIsRejected(): void
     {
-        self::assertFalse($this->signer('secret-a')->validateToken($this->signer('secret-b')->generateToken(60, 'admin'), 'admin'));
+        self::assertFalse($this->signer('secret-a')->validateToken($this->signer('secret-b')->generateToken(60, 'admin', 'id'), 'admin', 'id'));
     }
 
     public function testTamperedPayloadIsRejected(): void
     {
-        [, $signature] = explode('.', $this->signer()->generateToken(60, 'admin'));
+        [, $signature] = explode('.', $this->signer()->generateToken(60, 'admin', 'id'));
         $payload = rtrim(strtr(base64_encode('{"exp":9999999999}'), '+/', '-_'), '=');
 
-        self::assertFalse($this->signer()->validateToken($payload.'.'.$signature, 'admin'));
+        self::assertFalse($this->signer()->validateToken($payload.'.'.$signature, 'admin', 'id'));
     }
 
     public function testSignedPayloadWithoutExpiryIsRejected(): void
     {
         $payload = rtrim(strtr(base64_encode('{"nonce":"x"}'), '+/', '-_'), '=');
 
-        self::assertFalse($this->signer()->validateToken($payload.'.'.hash_hmac('sha256', $payload, 'secret'), 'admin'));
+        self::assertFalse($this->signer()->validateToken($payload.'.'.hash_hmac('sha256', $payload, 'secret'), 'admin', 'id'));
     }
 
     #[DataProvider('malformedTokens')]
     public function testMalformedTokenIsRejected(string $token): void
     {
-        self::assertFalse($this->signer()->validateToken($token, 'admin'));
+        self::assertFalse($this->signer()->validateToken($token, 'admin', 'id'));
     }
 
     public static function malformedTokens(): iterable
