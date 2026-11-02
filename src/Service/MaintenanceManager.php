@@ -2,6 +2,10 @@
 
 namespace MathisVincent\MaintenanceBundle\Service;
 
+use MathisVincent\MaintenanceBundle\Event\MaintenanceActivatedEvent;
+use MathisVincent\MaintenanceBundle\Event\MaintenanceAnnouncedEvent;
+use MathisVincent\MaintenanceBundle\Event\MaintenanceDeactivatedEvent;
+use Symfony\Component\EventDispatcher\EventDispatcherInterface;
 use Symfony\Component\HttpKernel\KernelInterface;
 
 /**
@@ -12,7 +16,7 @@ class MaintenanceManager
     private string $stateFile;
     private string $announcementFile;
 
-    public function __construct(KernelInterface $kernel)
+    public function __construct(KernelInterface $kernel, private readonly EventDispatcherInterface $dispatcher)
     {
         $this->stateFile = $kernel->getProjectDir().'/var/maintenance.json';
         $this->announcementFile = $kernel->getProjectDir().'/var/maintenance_announcement.json';
@@ -37,12 +41,15 @@ class MaintenanceManager
         $this->write($this->stateFile, $data);
         // the announced maintenance has started: visitors must not keep seeing it as upcoming
         $this->cancelAnnouncement();
+        $this->dispatcher->dispatch(new MaintenanceActivatedEvent($level, $data['ends_at'] ?? null));
     }
 
     public function deactivate(): void
     {
         if (file_exists($this->stateFile)) {
+            $level = $this->read($this->stateFile)['level'] ?? null;
             unlink($this->stateFile);
+            $this->dispatcher->dispatch(new MaintenanceDeactivatedEvent($level));
         }
     }
 
@@ -61,6 +68,7 @@ class MaintenanceManager
     public function announce(int $startsAt): void
     {
         $this->write($this->announcementFile, ['starts_at' => $startsAt]);
+        $this->dispatcher->dispatch(new MaintenanceAnnouncedEvent($startsAt));
     }
 
     public function cancelAnnouncement(): void

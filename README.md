@@ -23,8 +23,9 @@ It supports multi-level configuration, cryptographic protection via HMAC signing
 3. [YAML Configuration](#3-yaml-configuration)
 4. [Console Commands](#4-console-commands)
 5. [Displaying the Maintenance Banner](#5-displaying-the-maintenance-banner)
-6. [Contributing](#6-contributing)
-7. [License](#7-license)
+6. [Reacting to Maintenance Changes](#6-reacting-to-maintenance-changes)
+7. [Contributing](#7-contributing)
+8. [License](#8-license)
 
 ---
 
@@ -266,7 +267,25 @@ In your base template, so that every visitor sees it:
 
 ---
 
-## 6. Contributing
+## 6. Reacting to Maintenance Changes
+
+The bundle dispatches an event whenever the maintenance is activated, deactivated or announced (commands or `MaintenanceManager`). `endsAt` and `startsAt` are integer Unix timestamps. A maintenance ending by itself after `--duration` dispatches no event:
+
+- `MathisVincent\MaintenanceBundle\Event\MaintenanceActivatedEvent` (`level`, `endsAt` or `null`)
+- `MathisVincent\MaintenanceBundle\Event\MaintenanceDeactivatedEvent` (`level`), only when a maintenance was active
+- `MathisVincent\MaintenanceBundle\Event\MaintenanceAnnouncedEvent` (`startsAt`)
+
+```php
+#[AsEventListener]
+public function onActivated(MaintenanceActivatedEvent $event): void
+{
+    // notify the team, clear a cache...
+}
+```
+
+---
+
+## 7. Contributing
 
 Contributions are welcome! Bug reports, feature ideas and pull requests can all be submitted on [GitHub](https://github.com/Mathis-Vincent/maintenance-bundle/issues).
 
@@ -281,6 +300,6 @@ See [CONTRIBUTING.md](CONTRIBUTING.md) for the full workflow.
 
 ---
 
-## 7. License
+## 8. License
 
 This bundle is released under the [MIT License](LICENSE).
