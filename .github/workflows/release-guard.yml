@@ -1,0 +1,25 @@
+name: Release guard
+
+on:
+  pull_request:
+    # "edited" re-runs the check when a PR is retargeted to main after opening.
+    types: [opened, synchronize, reopened, edited]
+
+permissions: {}
+
+jobs:
+  release-guard:
+    name: Release guard
+    runs-on: ubuntu-latest
+    steps:
+      - name: Only the maintainer may open develop -> main
+        env:
+          BASE: ${{ github.base_ref }}
+          HEAD: ${{ github.head_ref }}
+          HEAD_REPO: ${{ github.event.pull_request.head.repo.full_name }}
+          AUTHOR: ${{ github.event.pull_request.user.login }}
+        run: |
+          if [ "$BASE" != main ]; then echo "Not a PR into main, nothing to check."; exit 0; fi
+          [ "$HEAD_REPO" = "$GITHUB_REPOSITORY" ] && [ "$HEAD" = develop ] || { echo "::error::main only accepts PRs from develop of this repository (got $HEAD_REPO:$HEAD)."; exit 1; }
+          [ "$AUTHOR" = Mathis-Vincent ] || { echo "::error::Only @Mathis-Vincent may open a PR into main (opened by $AUTHOR)."; exit 1; }
+          echo "Release PR develop -> main opened by the maintainer."
