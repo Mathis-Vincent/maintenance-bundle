@@ -49,6 +49,28 @@ class MaintenanceListenerTest extends WebTestCase
         self::assertStringContainsString('Maintenance in progress', (string) $this->client->getResponse()->getContent());
     }
 
+    public function testRetryAfterIsSentWithDuration(): void
+    {
+        $this->manager()->activate('default', 3600);
+
+        $this->client->request('GET', '/');
+
+        self::assertResponseStatusCodeSame(503);
+        $retryAfter = (int) $this->client->getResponse()->headers->get('Retry-After');
+        self::assertGreaterThan(3590, $retryAfter);
+        self::assertLessThanOrEqual(3600, $retryAfter);
+    }
+
+    public function testNoRetryAfterWithoutDuration(): void
+    {
+        $this->manager()->activate('default');
+
+        $this->client->request('GET', '/');
+
+        self::assertResponseStatusCodeSame(503);
+        self::assertResponseNotHasHeader('Retry-After');
+    }
+
     public function testRequestPassesOnceDurationHasElapsed(): void
     {
         $this->manager()->activate('default', -1);
