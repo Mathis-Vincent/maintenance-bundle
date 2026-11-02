@@ -137,7 +137,6 @@ maintenance:
 |:------------------|:---------|:-------------------------------------------------------------------------------|
 | `role_lifetimes`  | `array`  | Key-value mapping of Symfony user roles to bypass cookie lifetimes in seconds. |
 | `allowed_ip`      | `array`  | List of IP addresses allowed to bypass maintenance mode.                       |
-| `role_provider`   | `string` | Service id of a `MaintenanceRoleProviderInterface`. Defaults to the security-bundle one when security is enabled. |
 | `allowed_roles`   | `array`  | List of Symfony roles allowed to bypass maintenance mode.                      |
 | `excluded_routes` | `array`  | Route names (exact match) that stay available to everyone at this level.       |
 | `template`        | `string` | Twig template path for the 503 HTTP response displayed to blocked users.       |
@@ -147,12 +146,7 @@ maintenance:
 
 The roles in `role_lifetimes` and `allowed_roles` are your Symfony security roles: the ones your users hold (`getRoles()`) and the ones you define under `role_hierarchy` in `config/packages/security.yaml`. The bundle does not create any role, and a role your users hold directly does not need to be listed in `role_hierarchy`.
 
-`symfony/security-bundle` is optional. When it is installed and enabled, the bundle reads the roles of the logged-in user from it. Without it, set `role_provider` to a service implementing `MathisVincent\MaintenanceBundle\Service\MaintenanceRoleProviderInterface` (`getRoles(Request $request): array` returns the role strings of the requester); you can also use it to override the default. Using `allowed_roles` with neither available fails when the container is compiled. IP and cookie bypass need none of this.
-
-```yaml
-maintenance:
-  role_provider: App\Maintenance\MyRoleProvider
-```
+`symfony/security-bundle` is optional. When it is installed and enabled, the bundle reads the roles of the logged-in user from it. Without it, set `role_provider` to a service implementing `MathisVincent\MaintenanceBundle\Service\MaintenanceRoleProviderInterface` (`getRoles(Request $request): array` returns the role strings of the requester); you can also use it to override the default. Set it at the top level of the `maintenance` config, not per level. Using `allowed_roles` with neither available fails when the container is compiled. IP and cookie bypass need none of this.
 
 ```yaml
 # config/packages/security.yaml
@@ -165,6 +159,13 @@ security:
 With the default provider, `allowed_roles` are matched against the roles of the security token expanded by the hierarchy; custom voters are not consulted. With the hierarchy above, `allowed_roles: ['ROLE_HELP_DESK']` also lets `ROLE_ADMIN` users through.
 
 The cookie lifetime comes from the first role of `allowed_roles` that the user is granted, not from the role they actually hold. In that same example, a `ROLE_ADMIN` user gets the `ROLE_HELP_DESK` lifetime. To give them their own lifetime, list `ROLE_ADMIN` first in `allowed_roles`. A role without an entry in `role_lifetimes` gets 30 days.
+
+Example of a custom provider:
+
+```yaml
+maintenance:
+  role_provider: App\Maintenance\MyRoleProvider
+```
 
 ---
 
