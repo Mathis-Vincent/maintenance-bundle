@@ -83,7 +83,7 @@ class MaintenanceTwigExtension extends AbstractExtension
 
         // an excluded page is not in maintenance: only people who can bypass the level need the warning
         if ($isExcluded
-            && !$this->accessChecker->hasValidToken($request, $level)
+            && !$this->accessChecker->hasValidToken($request, $level, $state['id'] ?? '')
             && null === $this->accessChecker->getAccessLifetime($request, $levelConfig, [])) {
             return '';
         }

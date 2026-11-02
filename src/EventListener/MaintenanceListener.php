@@ -56,7 +56,7 @@ class MaintenanceListener
         $levelConfig = $config['levels'][$level];
         $request = $event->getRequest();
 
-        if ($this->accessChecker->isExcludedRoute($request, $levelConfig) || $this->accessChecker->hasValidToken($request, $level)) {
+        if ($this->accessChecker->isExcludedRoute($request, $levelConfig) || $this->accessChecker->hasValidToken($request, $level, $state['id'] ?? '')) {
             return;
         }
 
@@ -65,7 +65,7 @@ class MaintenanceListener
         if (null !== $userLifetime) {
             $cookie = Cookie::create(
                 MaintenanceAccessChecker::COOKIE_NAME,
-                $this->tokenSigner->generateToken($userLifetime, $level),
+                $this->tokenSigner->generateToken($userLifetime, $level, $state['id'] ?? ''),
                 time() + $userLifetime,
                 '/',
                 null,

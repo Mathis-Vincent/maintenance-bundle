@@ -92,7 +92,7 @@ class CommandTest extends KernelTestCase
         $tester = $this->tester('maintenance:activate');
 
         self::assertSame(Command::SUCCESS, $tester->execute([]));
-        self::assertSame(['active' => true, 'level' => 'default'], $this->manager()->getState());
+        self::assertSame(['active' => true, 'level' => 'default'], array_diff_key($this->manager()->getState(), ['id' => 1]));
     }
 
     public function testActivateGivenLevel(): void

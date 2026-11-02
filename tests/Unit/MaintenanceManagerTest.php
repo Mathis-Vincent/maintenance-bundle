@@ -32,7 +32,10 @@ class MaintenanceManagerTest extends TestCase
     {
         $this->manager()->activate('admin');
 
-        self::assertSame(['active' => true, 'level' => 'admin'], $this->manager()->getState());
+        $state = $this->manager()->getState();
+        self::assertSame(['active' => true, 'level' => 'admin'], array_diff_key($state, ['id' => 1]));
+        $this->manager()->activate('admin');
+        self::assertNotSame($state['id'], $this->manager()->getState()['id']);
     }
 
     public function testDeactivateRemovesState(): void
