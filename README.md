@@ -175,7 +175,7 @@ php bin/console maintenance:activate <level> --duration=7200
 
 > **Validation**: Activating an undeclared level (e.g., `php bin/console maintenance:activate non_existent`) will raise an error and fail gracefully.
 
-With `--duration`, the site reopens at the end date even if you can no longer reach the server: no cron or worker is involved, the date is checked on each request. The end date can be shown to visitors, see [Showing the end date](#showing-the-end-date).
+With `--duration`, the site reopens at the end date even if you can no longer reach the server: no cron or worker is involved, the date is checked on each request. The 503 response then carries a `Retry-After` header (seconds until the end date); without `--duration` it is omitted. The end date can be shown to visitors, see [Showing the end date](#showing-the-end-date).
 
 ### B. Deactivate Maintenance Mode
 

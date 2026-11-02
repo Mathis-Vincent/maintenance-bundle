@@ -89,6 +89,10 @@ class MaintenanceListener
         }
 
         $response = new Response($content, Response::HTTP_SERVICE_UNAVAILABLE);
+        if (isset($state['ends_at'])) {
+            $response->headers->set('Retry-After', (string) max(0, $state['ends_at'] - time()));
+        }
+
         $event->setResponse($response);
     }
 
