@@ -151,6 +151,16 @@ class MaintenanceListenerTest extends WebTestCase
         $this->assertBypassCookieLifetime(2592000);
     }
 
+    public function testRoleInheritedThroughHierarchyGetsThrough(): void
+    {
+        $this->manager()->activate('members');
+        $this->client->loginUser($this->user('support'));
+
+        $this->client->request('GET', '/');
+
+        self::assertResponseIsSuccessful();
+    }
+
     public function testLoggedInUserWithoutAllowedRoleIsBlocked(): void
     {
         $this->manager()->activate('admin');

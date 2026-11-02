@@ -2,8 +2,6 @@
 
 namespace MathisVincent\MaintenanceBundle\Service;
 
-use MathisVincent\MaintenanceBundle\MaintenanceBundle;
-use Symfony\Bundle\SecurityBundle\Security;
 use Symfony\Component\HttpFoundation\IpUtils;
 use Symfony\Component\HttpFoundation\Request;
 
@@ -19,7 +17,7 @@ final class MaintenanceAccessChecker
 
     public function __construct(
         private MaintenanceTokenSigner $tokenSigner,
-        private ?Security $security = null
+        private ?MaintenanceRoleProviderInterface $roleProvider = null
     ) {
     }
 
@@ -53,13 +51,13 @@ final class MaintenanceAccessChecker
         }
 
         $allowedRoles = $levelConfig['allowed_roles'] ?? [];
-        $security = $this->security;
-        if ([] === $allowedRoles || null === $security || null === $security->getUser()) {
+        if ([] === $allowedRoles || null === $this->roleProvider) {
             return null;
         }
 
+        $roles = $this->roleProvider->getRoles($request);
         foreach ($allowedRoles as $role) {
-            if ($security->isGranted($role)) {
+            if (\in_array($role, $roles, true)) {
                 return $roleLifetimes[$role] ?? self::DEFAULT_LIFETIME;
             }
         }
