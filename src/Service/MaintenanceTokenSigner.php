@@ -7,13 +7,15 @@ use Symfony\Component\DependencyInjection\ParameterBag\ParameterBagInterface;
 /**
  * Handles cryptographic signing and verification of bypass tokens using HMAC.
  */
-class MaintenanceTokenSigner
+final class MaintenanceTokenSigner
 {
     private string $secret;
 
     public function __construct(ParameterBagInterface $params)
     {
-        $this->secret = $params->get('kernel.secret');
+        $secret = $params->get('kernel.secret');
+        \assert(\is_string($secret));
+        $this->secret = $secret;
     }
 
     public function generateToken(int $lifetimeSeconds, string $level, string $id): string
@@ -25,7 +27,7 @@ class MaintenanceTokenSigner
             'nonce' => bin2hex(random_bytes(16)),
         ];
 
-        $jsonPayload = json_encode($payload);
+        $jsonPayload = json_encode($payload, JSON_THROW_ON_ERROR);
         $base64Payload = rtrim(strtr(base64_encode($jsonPayload), '+/', '-_'), '=');
         $signature = hash_hmac('sha256', $base64Payload, $this->secret);
 
@@ -47,9 +49,10 @@ class MaintenanceTokenSigner
         }
 
         $jsonPayload = base64_decode(strtr($base64Payload, '-_', '+/'));
+        /** @var array{exp?: int, level?: string, id?: string}|null $payload */
         $payload = json_decode($jsonPayload, true);
 
-        if (!$payload || !isset($payload['exp'])) {
+        if (!is_array($payload) || !isset($payload['exp'])) {
             return false;
         }
 

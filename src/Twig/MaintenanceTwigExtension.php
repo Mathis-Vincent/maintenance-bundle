@@ -2,6 +2,7 @@
 
 namespace MathisVincent\MaintenanceBundle\Twig;
 
+use MathisVincent\MaintenanceBundle\MaintenanceBundle;
 use MathisVincent\MaintenanceBundle\Service\MaintenanceAccessChecker;
 use MathisVincent\MaintenanceBundle\Service\MaintenanceManager;
 use Symfony\Component\DependencyInjection\ParameterBag\ParameterBagInterface;
@@ -11,7 +12,11 @@ use Twig\Environment;
 use Twig\Extension\AbstractExtension;
 use Twig\TwigFunction;
 
-class MaintenanceTwigExtension extends AbstractExtension
+/**
+ * @psalm-import-type Config from MaintenanceBundle
+ * @psalm-import-type LevelConfig from MaintenanceBundle
+ */
+final class MaintenanceTwigExtension extends AbstractExtension
 {
     public function __construct(
         private MaintenanceManager $maintenanceManager,
@@ -22,6 +27,7 @@ class MaintenanceTwigExtension extends AbstractExtension
     ) {
     }
 
+    #[\Override]
     public function getFunctions(): array
     {
         return [
@@ -70,11 +76,12 @@ class MaintenanceTwigExtension extends AbstractExtension
         $state = $this->maintenanceManager->getState();
         $level = $state['level'] ?? 'default';
 
+        /** @var Config $config */
         $config = $this->params->get('maintenance.config');
-        $levelConfig = $config['levels'][$level] ?? [];
+        $levelConfig = $config['levels'][$level] ?? null;
 
         $template = $levelConfig['banner_template'] ?? null;
-        if (!$template) {
+        if (null === $levelConfig || null === $template || '' === $template) {
             return '';
         }
 
@@ -98,15 +105,18 @@ class MaintenanceTwigExtension extends AbstractExtension
     /**
      * Says who can reach the current page. IP values stay out of it, as they may be private.
      */
+    /**
+     * @param LevelConfig $levelConfig
+     */
     private function describePageAccess(bool $isExcluded, array $levelConfig): TranslatableMessage
     {
         $roles = $levelConfig['allowed_roles'] ?? [];
-        $hasIps = !empty($levelConfig['allowed_ip']);
+        $hasIps = [] !== ($levelConfig['allowed_ip'] ?? []);
 
         $case = match (true) {
             $isExcluded => 'everyone',
-            $roles && $hasIps => 'roles_and_ips',
-            (bool) $roles => 'roles',
+            [] !== $roles && $hasIps => 'roles_and_ips',
+            [] !== $roles => 'roles',
             $hasIps => 'ips',
             default => 'nobody',
         };

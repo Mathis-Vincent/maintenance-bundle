@@ -13,13 +13,14 @@ use Symfony\Component\Console\Style\SymfonyStyle;
     name: 'maintenance:deactivate',
     description: 'Deactivates the maintenance mode of the application.'
 )]
-class DeactivateMaintenanceModeCommand extends Command
+final class DeactivateMaintenanceModeCommand extends Command
 {
     public function __construct(private MaintenanceManager $maintenanceManager)
     {
         parent::__construct();
     }
 
+    #[\Override]
     protected function execute(InputInterface $input, OutputInterface $output): int
     {
         $io = new SymfonyStyle($input, $output);

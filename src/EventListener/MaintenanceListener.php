@@ -2,6 +2,7 @@
 
 namespace MathisVincent\MaintenanceBundle\EventListener;
 
+use MathisVincent\MaintenanceBundle\MaintenanceBundle;
 use MathisVincent\MaintenanceBundle\Service\MaintenanceAccessChecker;
 use MathisVincent\MaintenanceBundle\Service\MaintenanceManager;
 use MathisVincent\MaintenanceBundle\Service\MaintenanceTokenSigner;
@@ -17,9 +18,11 @@ use Twig\Environment;
 
 /**
  * Listens to kernel requests to handle maintenance mode restrictions and automatic token generation.
+ *
+ * @psalm-import-type Config from MaintenanceBundle
  */
 #[AsEventListener(event: KernelEvents::REQUEST, priority: -10)]
-class MaintenanceListener
+final class MaintenanceListener
 {
     /**
      * Initializes the maintenance request listener.
@@ -43,11 +46,12 @@ class MaintenanceListener
         }
 
         $state = $this->maintenanceManager->getState();
-        if (!$state || empty($state['active'])) {
+        if (null === $state || empty($state['active'])) {
             return;
         }
 
         $level = $state['level'] ?? 'default';
+        /** @var Config $config */
         $config = $this->params->get('maintenance.config');
 
         if (!isset($config['levels'][$level])) {
@@ -113,8 +117,9 @@ class MaintenanceListener
             return;
         }
 
+        /** @psalm-suppress MixedAssignment */
         $cookie = $event->getRequest()->attributes->get('_maintenance_cookie_to_set');
-        if ($cookie) {
+        if ($cookie instanceof Cookie) {
             $event->getResponse()->headers->setCookie($cookie);
         }
     }
