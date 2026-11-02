@@ -9,12 +9,20 @@ use Symfony\Component\HttpKernel\Bundle\AbstractBundle;
 
 /**
  * Main bundle class for the MathisVincent Maintenance Bundle.
+ *
+ * @psalm-type LevelConfig = array{template: string, banner_template?: string|null, allowed_ip?: list<string>, allowed_roles?: list<string>, excluded_routes?: list<string>}
+ * @psalm-type Config = array{role_lifetimes?: array<string, int>, levels: array<string, LevelConfig>}
+ *
+ * @psalm-suppress DeprecatedInterface AbstractBundle implements BundleInterface, deprecated since Symfony 8.1 only
  */
-class MaintenanceBundle extends AbstractBundle
+final class MaintenanceBundle extends AbstractBundle
 {
     /**
      * Configures the bundle options and tree structure.
+     *
+     * @psalm-suppress PossiblyUndefinedMethod, MixedMethodCall the config tree builder is fluent and untyped
      */
+    #[\Override]
     public function configure(DefinitionConfigurator $definition): void
     {
         $definition->rootNode()
@@ -52,9 +60,10 @@ class MaintenanceBundle extends AbstractBundle
     /**
      * Loads extension parameters into the container.
      */
-    public function loadExtension(array $config, ContainerConfigurator $container, ContainerBuilder $builder): void
+    #[\Override]
+    public function loadExtension(array $config, ContainerConfigurator $configurator, ContainerBuilder $container): void
     {
-        $builder->setParameter('maintenance.config', $config);
-        $container->import('../config/services.yaml');
+        $container->setParameter('maintenance.config', $config);
+        $configurator->import('../config/services.yaml');
     }
 }
