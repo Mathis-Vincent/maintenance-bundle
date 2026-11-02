@@ -2,6 +2,8 @@
 
 namespace MathisVincent\MaintenanceBundle;
 
+use MathisVincent\MaintenanceBundle\DependencyInjection\RoleProviderPass;
+use MathisVincent\MaintenanceBundle\Service\MaintenanceRoleProviderInterface;
 use Symfony\Component\Config\Definition\Configurator\DefinitionConfigurator;
 use Symfony\Component\DependencyInjection\ContainerBuilder;
 use Symfony\Component\DependencyInjection\Loader\Configurator\ContainerConfigurator;
@@ -35,6 +37,7 @@ final class MaintenanceBundle extends AbstractBundle
                 'ROLE_HELP_DESK' => 2592000,
             ])
             ->end()
+            ->scalarNode('role_provider')->defaultNull()->end()
             ->arrayNode('levels')
             ->useAttributeAsKey('name')
             ->arrayPrototype()
@@ -65,5 +68,16 @@ final class MaintenanceBundle extends AbstractBundle
     {
         $container->setParameter('maintenance.config', $config);
         $configurator->import('../config/services.yaml');
+
+        $provider = (string) ($config['role_provider'] ?? '');
+        if ('' !== $provider) {
+            $container->setAlias(MaintenanceRoleProviderInterface::class, $provider);
+        }
+    }
+
+    #[\Override]
+    public function build(ContainerBuilder $container): void
+    {
+        $container->addCompilerPass(new RoleProviderPass());
     }
 }
