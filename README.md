@@ -222,7 +222,7 @@ The Twig extension (`MaintenanceTwigExtension`) provides five global functions:
 ### Behavior Overview:
 - **Normal Mode**: `{{ maintenance_banner() }}` returns an empty string.
 - **Maintenance Active (`maintenance:activate admin`)**:
-  - Unauthenticated or unauthorized visitors receive the 503 HTTP status page.
+  - Unauthenticated or unauthorized visitors receive the 503 HTTP status page, or a `{"error":"maintenance"}` JSON 503 when the `Accept` header prefers `application/json`.
   - Authorized users (via IP, role, or HMAC cookie) navigate seamlessly and automatically receive a signed cookie mapped to their role duration.
 
 ### Showing who can reach the page:

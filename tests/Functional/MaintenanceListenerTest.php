@@ -71,6 +71,17 @@ class MaintenanceListenerTest extends WebTestCase
         self::assertResponseNotHasHeader('Retry-After');
     }
 
+    public function testJsonClientGetsJsonResponse(): void
+    {
+        $this->manager()->activate('default');
+
+        $this->client->request('GET', '/', server: ['HTTP_ACCEPT' => 'application/json']);
+
+        self::assertResponseStatusCodeSame(503);
+        self::assertResponseHeaderSame('Content-Type', 'application/json');
+        self::assertSame('{"error":"maintenance"}', $this->client->getResponse()->getContent());
+    }
+
     public function testRequestPassesOnceDurationHasElapsed(): void
     {
         $this->manager()->activate('default', -1);
