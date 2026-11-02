@@ -8,7 +8,7 @@ use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\Security\Core\Role\RoleHierarchyInterface;
 
 /**
- * Default provider: the roles of the logged-in user, role hierarchy included.
+ * Default provider: the roles of the security token (not only the user's), role hierarchy included.
  */
 final class SecurityRoleProvider implements MaintenanceRoleProviderInterface
 {
@@ -21,8 +21,8 @@ final class SecurityRoleProvider implements MaintenanceRoleProviderInterface
     #[\Override]
     public function getRoles(Request $request): array
     {
-        $user = $this->security->getUser();
+        $token = $this->security->getToken();
 
-        return $user ? $this->roleHierarchy->getReachableRoleNames($user->getRoles()) : [];
+        return $token ? $this->roleHierarchy->getReachableRoleNames($token->getRoleNames()) : [];
     }
 }

@@ -2,6 +2,7 @@
 
 namespace MathisVincent\MaintenanceBundle\Service;
 
+use MathisVincent\MaintenanceBundle\MaintenanceBundle;
 use Symfony\Component\HttpFoundation\IpUtils;
 use Symfony\Component\HttpFoundation\Request;
 

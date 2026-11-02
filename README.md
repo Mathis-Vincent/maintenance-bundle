@@ -162,7 +162,7 @@ security:
     ROLE_ADMIN: ROLE_HELP_DESK
 ```
 
-With the default provider the role hierarchy applies. With the hierarchy above, `allowed_roles: ['ROLE_HELP_DESK']` also lets `ROLE_ADMIN` users through.
+With the default provider, `allowed_roles` are matched against the roles of the security token expanded by the hierarchy; custom voters are not consulted. With the hierarchy above, `allowed_roles: ['ROLE_HELP_DESK']` also lets `ROLE_ADMIN` users through.
 
 The cookie lifetime comes from the first role of `allowed_roles` that the user is granted, not from the role they actually hold. In that same example, a `ROLE_ADMIN` user gets the `ROLE_HELP_DESK` lifetime. To give them their own lifetime, list `ROLE_ADMIN` first in `allowed_roles`. A role without an entry in `role_lifetimes` gets 30 days.
 

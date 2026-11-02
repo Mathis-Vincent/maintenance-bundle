@@ -69,8 +69,9 @@ final class MaintenanceBundle extends AbstractBundle
         $container->setParameter('maintenance.config', $config);
         $configurator->import('../config/services.yaml');
 
-        if (null !== $config['role_provider']) {
-            $container->setAlias(MaintenanceRoleProviderInterface::class, $config['role_provider']);
+        $provider = (string) ($config['role_provider'] ?? '');
+        if ('' !== $provider) {
+            $container->setAlias(MaintenanceRoleProviderInterface::class, $provider);
         }
     }
 
