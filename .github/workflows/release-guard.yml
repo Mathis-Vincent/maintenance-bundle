@@ -12,7 +12,7 @@ jobs:
     name: Release guard
     runs-on: ubuntu-latest
     steps:
-      - name: Only the maintainer may open develop -> main
+      - name: Only the maintainer may open develop or hotfix/* -> main
         env:
           BASE: ${{ github.base_ref }}
           HEAD: ${{ github.head_ref }}
@@ -20,6 +20,7 @@ jobs:
           AUTHOR: ${{ github.event.pull_request.user.login }}
         run: |
           if [ "$BASE" != main ]; then echo "Not a PR into main, nothing to check."; exit 0; fi
-          [ "$HEAD_REPO" = "$GITHUB_REPOSITORY" ] && [ "$HEAD" = develop ] || { echo "::error::main only accepts PRs from develop of this repository (got $HEAD_REPO:$HEAD)."; exit 1; }
+          case "$HEAD" in develop|hotfix/*) ok=1 ;; *) ok=0 ;; esac
+          [ "$HEAD_REPO" = "$GITHUB_REPOSITORY" ] && [ "$ok" = 1 ] || { echo "::error::main only accepts PRs from develop or hotfix/* of this repository (got $HEAD_REPO:$HEAD)."; exit 1; }
           [ "$AUTHOR" = Mathis-Vincent ] || { echo "::error::Only @Mathis-Vincent may open a PR into main (opened by $AUTHOR)."; exit 1; }
-          echo "Release PR develop -> main opened by the maintainer."
+          echo "PR $HEAD -> main opened by the maintainer."
