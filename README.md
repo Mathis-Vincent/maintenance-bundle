@@ -41,6 +41,9 @@ This bundle allows you to put your application in maintenance mode without inter
 - **Hybrid Restrictions**: Flexible combination of rules by IP address, user roles (`ROLE_ADMIN`, `ROLE_SUPPORT`), and/or cookies.
 - **Persistent Warning Banner (UX)**: Displays a customizable banner for authorized users navigating during maintenance.
 
+### Why the state is a file, not a database
+The maintenance state lives in `var/maintenance.json` (and `var/maintenance_announcement.json`), never in the database. Maintenance must stay available when the database is down: a database-backed state would make activation fail and every state check depend on it. The bundle therefore has no Doctrine dependency.
+
 ---
 
 ## 2. Installation & Integration
