@@ -6,6 +6,7 @@
 [![Latest Version](https://img.shields.io/packagist/v/mathis-vincent/maintenance-bundle.svg)](https://packagist.org/packages/mathis-vincent/maintenance-bundle)
 [![PHP Version](https://img.shields.io/packagist/dependency-v/mathis-vincent/maintenance-bundle/php.svg)](https://packagist.org/packages/mathis-vincent/maintenance-bundle)
 [![License](https://img.shields.io/github/license/Mathis-Vincent/maintenance-bundle.svg)](LICENSE)
+[![Website](https://img.shields.io/badge/website-maintenance--bundle.mathis--vincent.com-blue.svg)](https://maintenance-bundle.mathis-vincent.com/)
 
 A robust, modern, and fully configurable Symfony bundle to manage application maintenance mode.
 
