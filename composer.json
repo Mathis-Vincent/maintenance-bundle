@@ -30,7 +30,7 @@
     "symfony/framework-bundle": "^6.4 || ^7.0 || ^8.0",
     "symfony/security-bundle": "^6.4 || ^7.0 || ^8.0",
     "symfony/twig-bundle": "^6.4 || ^7.0 || ^8.0",
-    "vimeo/psalm": "^6.0"
+    "vimeo/psalm": "^7.0"
   },
   "suggest": {
     "symfony/security-bundle": "Required for role-based bypass (allowed_roles)"
