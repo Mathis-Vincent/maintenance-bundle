@@ -5,4 +5,4 @@ services:
 
   MathisVincent\MaintenanceBundle\:
     resource: '../src/'
-    exclude: '../src/{Attribute,MaintenanceBundle.php}'
+    exclude: '../src/{Attribute,DependencyInjection,Security,MaintenanceBundle.php}'

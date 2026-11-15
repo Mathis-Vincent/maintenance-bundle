@@ -2,17 +2,23 @@
 
 namespace MathisVincent\MaintenanceBundle\Service;
 
+use MathisVincent\MaintenanceBundle\Event\MaintenanceActivatedEvent;
+use MathisVincent\MaintenanceBundle\Event\MaintenanceAnnouncedEvent;
+use MathisVincent\MaintenanceBundle\Event\MaintenanceDeactivatedEvent;
+use Symfony\Component\EventDispatcher\EventDispatcherInterface;
 use Symfony\Component\HttpKernel\KernelInterface;
 
 /**
  * Manages the active state and level of the application maintenance mode.
+ *
+ * @psalm-type State = array{active?: bool, level?: string, id?: string, ends_at?: int, starts_at?: int}
  */
-class MaintenanceManager
+final class MaintenanceManager
 {
     private string $stateFile;
     private string $announcementFile;
 
-    public function __construct(KernelInterface $kernel)
+    public function __construct(KernelInterface $kernel, private readonly EventDispatcherInterface $dispatcher)
     {
         $this->stateFile = $kernel->getProjectDir().'/var/maintenance.json';
         $this->announcementFile = $kernel->getProjectDir().'/var/maintenance_announcement.json';
@@ -26,6 +32,8 @@ class MaintenanceManager
         $data = [
             'active' => true,
             'level' => $level,
+            // identifies this maintenance: bypass tokens from a previous one are rejected
+            'id' => bin2hex(random_bytes(16)),
         ];
 
         if (null !== $duration) {
@@ -35,15 +43,21 @@ class MaintenanceManager
         $this->write($this->stateFile, $data);
         // the announced maintenance has started: visitors must not keep seeing it as upcoming
         $this->cancelAnnouncement();
+        $this->dispatcher->dispatch(new MaintenanceActivatedEvent($level, $data['ends_at'] ?? null));
     }
 
     public function deactivate(): void
     {
         if (file_exists($this->stateFile)) {
+            $level = $this->read($this->stateFile)['level'] ?? null;
             unlink($this->stateFile);
+            $this->dispatcher->dispatch(new MaintenanceDeactivatedEvent(is_string($level) ? $level : null));
         }
     }
 
+    /**
+     * @return State|null
+     */
     public function getState(): ?array
     {
         $state = $this->read($this->stateFile);
@@ -59,6 +73,7 @@ class MaintenanceManager
     public function announce(int $startsAt): void
     {
         $this->write($this->announcementFile, ['starts_at' => $startsAt]);
+        $this->dispatcher->dispatch(new MaintenanceAnnouncedEvent($startsAt));
     }
 
     public function cancelAnnouncement(): void
@@ -75,9 +90,12 @@ class MaintenanceManager
     {
         $startsAt = $this->read($this->announcementFile)['starts_at'] ?? null;
 
-        return $startsAt > time() ? $startsAt : null;
+        return is_int($startsAt) && $startsAt > time() ? $startsAt : null;
     }
 
+    /**
+     * @param array<string, bool|int|string> $data
+     */
     private function write(string $file, array $data): void
     {
         $dir = dirname($file);
@@ -85,17 +103,24 @@ class MaintenanceManager
             mkdir($dir, 0o777, true);
         }
 
-        file_put_contents($file, json_encode($data));
+        file_put_contents($file, json_encode($data, JSON_THROW_ON_ERROR));
     }
 
+    /**
+     * @return State|null
+     */
     private function read(string $file): ?array
     {
         if (!file_exists($file)) {
             return null;
         }
 
-        $content = file_get_contents($file);
+        /** @psalm-suppress MixedAssignment */
+        $data = json_decode((string) file_get_contents($file), true);
 
-        return json_decode($content, true);
+        /** @var State|null $state */
+        $state = is_array($data) ? $data : null;
+
+        return $state;
     }
 }

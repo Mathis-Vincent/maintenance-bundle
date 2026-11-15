@@ -14,7 +14,7 @@ use Symfony\Component\DependencyInjection\ParameterBag\ParameterBagInterface;
     name: 'maintenance:status',
     description: 'Displays the current status of the maintenance mode.'
 )]
-class MaintenanceStatusCommand extends Command
+final class MaintenanceStatusCommand extends Command
 {
     public function __construct(
         private MaintenanceManager $maintenanceManager,
@@ -34,7 +34,7 @@ class MaintenanceStatusCommand extends Command
             $io->note(sprintf('Maintenance announced for %s.', date('Y-m-d H:i', $announcement)));
         }
 
-        if (!$state || empty($state['active'])) {
+        if (null === $state || empty($state['active'])) {
             $io->success('Maintenance mode is inactive.');
 
             return Command::SUCCESS;

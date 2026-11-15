@@ -16,7 +16,7 @@ use Symfony\Component\DependencyInjection\ParameterBag\ParameterBagInterface;
     name: 'maintenance:activate',
     description: 'Activates the maintenance mode of the application.'
 )]
-class ActivateMaintenanceModeCommand extends Command
+final class ActivateMaintenanceModeCommand extends Command
 {
     public function __construct(
         private MaintenanceManager $maintenanceManager,
@@ -25,17 +25,20 @@ class ActivateMaintenanceModeCommand extends Command
         parent::__construct();
     }
 
+    #[\Override]
     protected function configure(): void
     {
         $this->addArgument('level', InputArgument::OPTIONAL, 'Maintenance level (e.g., default, admin, help_desk)', 'default');
         $this->addOption('duration', null, InputOption::VALUE_REQUIRED, 'Seconds after which the maintenance ends by itself');
     }
 
+    #[\Override]
     protected function execute(InputInterface $input, OutputInterface $output): int
     {
         $io = new SymfonyStyle($input, $output);
-        $level = $input->getArgument('level');
+        $level = (string) $input->getArgument('level');
 
+        /** @var array{levels: array<string, mixed>} $config */
         $config = $this->params->get('maintenance.config');
 
         if (!isset($config['levels'][$level])) {
@@ -44,9 +47,11 @@ class ActivateMaintenanceModeCommand extends Command
             return Command::FAILURE;
         }
 
-        $duration = $input->getOption('duration');
-        if (null !== $duration) {
-            $duration = filter_var($duration, FILTER_VALIDATE_INT, ['options' => ['min_range' => 1]]);
+        /** @var string|null $durationOption */
+        $durationOption = $input->getOption('duration');
+        $duration = null;
+        if (null !== $durationOption) {
+            $duration = filter_var($durationOption, FILTER_VALIDATE_INT, ['options' => ['min_range' => 1]]);
             if (false === $duration) {
                 $io->error('The duration must be a positive number of seconds.');
 

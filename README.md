@@ -4,6 +4,7 @@
 
 [![CI](https://github.com/Mathis-Vincent/maintenance-bundle/actions/workflows/ci.yml/badge.svg)](https://github.com/Mathis-Vincent/maintenance-bundle/actions/workflows/ci.yml)
 [![Latest Version](https://img.shields.io/packagist/v/mathis-vincent/maintenance-bundle.svg)](https://packagist.org/packages/mathis-vincent/maintenance-bundle)
+[![Downloads](https://img.shields.io/packagist/dt/mathis-vincent/maintenance-bundle.svg)](https://packagist.org/packages/mathis-vincent/maintenance-bundle)
 [![PHP Version](https://img.shields.io/packagist/dependency-v/mathis-vincent/maintenance-bundle/php.svg)](https://packagist.org/packages/mathis-vincent/maintenance-bundle)
 [![License](https://img.shields.io/github/license/Mathis-Vincent/maintenance-bundle.svg)](LICENSE)
 [![Website](https://img.shields.io/badge/website-maintenance--bundle.mathis--vincent.com-blue.svg)](https://maintenance-bundle.mathis-vincent.com/)
@@ -23,8 +24,9 @@ It supports multi-level configuration, cryptographic protection via HMAC signing
 3. [YAML Configuration](#3-yaml-configuration)
 4. [Console Commands](#4-console-commands)
 5. [Displaying the Maintenance Banner](#5-displaying-the-maintenance-banner)
-6. [Contributing](#6-contributing)
-7. [License](#7-license)
+6. [Reacting to Maintenance Changes](#6-reacting-to-maintenance-changes)
+7. [Contributing](#7-contributing)
+8. [License](#8-license)
 
 ---
 
@@ -35,9 +37,13 @@ This bundle allows you to put your application in maintenance mode without inter
 ### Key Features:
 - **Modular Maintenance Levels**: Configure multiple levels (e.g., `default`, `admin`, `help_desk`) with custom permissions and templates.
 - **Automatic Role-Based Cookie Bypass**: Automatically generates a cryptographically signed secure cookie when an authorized user accesses the application.
+- **Cookies Reset Per Maintenance**: Each activation gets a unique ID signed into the cookie, so cookies from a previous maintenance stop working.
 - **Role-Based Lifetimes**: Configure cookie duration globally per user role (e.g., 7 days for `ROLE_ADMIN`, 30 days for `ROLE_HELP_DESK`).
 - **Hybrid Restrictions**: Flexible combination of rules by IP address, user roles (`ROLE_ADMIN`, `ROLE_SUPPORT`), and/or cookies.
 - **Persistent Warning Banner (UX)**: Displays a customizable banner for authorized users navigating during maintenance.
+
+### Why the state is a file, not a database
+The maintenance state lives in `var/maintenance.json` (and `var/maintenance_announcement.json`), never in the database. Maintenance must stay available when the database is down: a database-backed state would make activation fail and every state check depend on it. The bundle therefore has no Doctrine dependency.
 
 ---
 
@@ -141,6 +147,8 @@ maintenance:
 
 The roles in `role_lifetimes` and `allowed_roles` are your Symfony security roles: the ones your users hold (`getRoles()`) and the ones you define under `role_hierarchy` in `config/packages/security.yaml`. The bundle does not create any role, and a role your users hold directly does not need to be listed in `role_hierarchy`.
 
+`symfony/security-bundle` is optional. When it is installed and enabled, the bundle reads the roles of the logged-in user from it. Without it, set `role_provider` to a service implementing `MathisVincent\MaintenanceBundle\Service\MaintenanceRoleProviderInterface` (`getRoles(Request $request): array` returns the role strings of the requester); you can also use it to override the default. Set it at the top level of the `maintenance` config, not per level. Using `allowed_roles` with neither available fails when the container is compiled. IP and cookie bypass need none of this.
+
 ```yaml
 # config/packages/security.yaml
 security:
@@ -149,9 +157,16 @@ security:
     ROLE_ADMIN: ROLE_HELP_DESK
 ```
 
-Access is checked with `isGranted()`, so the hierarchy applies. With the hierarchy above, `allowed_roles: ['ROLE_HELP_DESK']` also lets `ROLE_ADMIN` users through.
+With the default provider, `allowed_roles` are matched against the roles of the security token expanded by the hierarchy; custom voters are not consulted. With the hierarchy above, `allowed_roles: ['ROLE_HELP_DESK']` also lets `ROLE_ADMIN` users through.
 
 The cookie lifetime comes from the first role of `allowed_roles` that the user is granted, not from the role they actually hold. In that same example, a `ROLE_ADMIN` user gets the `ROLE_HELP_DESK` lifetime. To give them their own lifetime, list `ROLE_ADMIN` first in `allowed_roles`. A role without an entry in `role_lifetimes` gets 30 days.
+
+Example of a custom provider:
+
+```yaml
+maintenance:
+  role_provider: App\Maintenance\MyRoleProvider
+```
 
 ---
 
@@ -174,7 +189,7 @@ php bin/console maintenance:activate <level> --duration=7200
 
 > **Validation**: Activating an undeclared level (e.g., `php bin/console maintenance:activate non_existent`) will raise an error and fail gracefully.
 
-With `--duration`, the site reopens at the end date even if you can no longer reach the server: no cron or worker is involved, the date is checked on each request. The end date can be shown to visitors, see [Showing the end date](#showing-the-end-date).
+With `--duration`, the site reopens at the end date even if you can no longer reach the server: no cron or worker is involved, the date is checked on each request. The 503 response then carries a `Retry-After` header (seconds until the end date); without `--duration` it is omitted. The end date can be shown to visitors, see [Showing the end date](#showing-the-end-date).
 
 ### B. Deactivate Maintenance Mode
 
@@ -217,7 +232,7 @@ The Twig extension (`MaintenanceTwigExtension`) provides five global functions:
 ### Behavior Overview:
 - **Normal Mode**: `{{ maintenance_banner() }}` returns an empty string.
 - **Maintenance Active (`maintenance:activate admin`)**:
-  - Unauthenticated or unauthorized visitors receive the 503 HTTP status page.
+  - Unauthenticated or unauthorized visitors receive the 503 HTTP status page, or a `{"error":"maintenance"}` JSON 503 when the `Accept` header prefers `application/json`.
   - Authorized users (via IP, role, or HMAC cookie) navigate seamlessly and automatically receive a signed cookie mapped to their role duration.
 
 ### Showing who can reach the page:
@@ -265,7 +280,25 @@ In your base template, so that every visitor sees it:
 
 ---
 
-## 6. Contributing
+## 6. Reacting to Maintenance Changes
+
+The bundle dispatches an event whenever the maintenance is activated, deactivated or announced (commands or `MaintenanceManager`). `endsAt` and `startsAt` are integer Unix timestamps. A maintenance ending by itself after `--duration` dispatches no event:
+
+- `MathisVincent\MaintenanceBundle\Event\MaintenanceActivatedEvent` (`level`, `endsAt` or `null`)
+- `MathisVincent\MaintenanceBundle\Event\MaintenanceDeactivatedEvent` (`level`), only when a maintenance was active
+- `MathisVincent\MaintenanceBundle\Event\MaintenanceAnnouncedEvent` (`startsAt`)
+
+```php
+#[AsEventListener]
+public function onActivated(MaintenanceActivatedEvent $event): void
+{
+    // notify the team, clear a cache...
+}
+```
+
+---
+
+## 7. Contributing
 
 Contributions are welcome! Bug reports, feature ideas and pull requests can all be submitted on [GitHub](https://github.com/Mathis-Vincent/maintenance-bundle/issues).
 
@@ -280,6 +313,6 @@ See [CONTRIBUTING.md](CONTRIBUTING.md) for the full workflow.
 
 ---
 
-## 7. License
+## 8. License
 
 This bundle is released under the [MIT License](LICENSE).

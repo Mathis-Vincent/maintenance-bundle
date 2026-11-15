@@ -2,12 +2,14 @@
 
 namespace MathisVincent\MaintenanceBundle\EventListener;
 
+use MathisVincent\MaintenanceBundle\MaintenanceBundle;
 use MathisVincent\MaintenanceBundle\Service\MaintenanceAccessChecker;
 use MathisVincent\MaintenanceBundle\Service\MaintenanceManager;
 use MathisVincent\MaintenanceBundle\Service\MaintenanceTokenSigner;
 use Symfony\Component\DependencyInjection\ParameterBag\ParameterBagInterface;
 use Symfony\Component\EventDispatcher\Attribute\AsEventListener;
 use Symfony\Component\HttpFoundation\Cookie;
+use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\HttpKernel\Event\RequestEvent;
 use Symfony\Component\HttpKernel\Event\ResponseEvent;
@@ -16,9 +18,11 @@ use Twig\Environment;
 
 /**
  * Listens to kernel requests to handle maintenance mode restrictions and automatic token generation.
+ *
+ * @psalm-import-type Config from MaintenanceBundle
  */
 #[AsEventListener(event: KernelEvents::REQUEST, priority: -10)]
-class MaintenanceListener
+final class MaintenanceListener
 {
     /**
      * Initializes the maintenance request listener.
@@ -42,11 +46,12 @@ class MaintenanceListener
         }
 
         $state = $this->maintenanceManager->getState();
-        if (!$state || empty($state['active'])) {
+        if (null === $state || empty($state['active'])) {
             return;
         }
 
         $level = $state['level'] ?? 'default';
+        /** @var Config $config */
         $config = $this->params->get('maintenance.config');
 
         if (!isset($config['levels'][$level])) {
@@ -56,7 +61,7 @@ class MaintenanceListener
         $levelConfig = $config['levels'][$level];
         $request = $event->getRequest();
 
-        if ($this->accessChecker->isExcludedRoute($request, $levelConfig) || $this->accessChecker->hasValidToken($request, $level)) {
+        if ($this->accessChecker->isExcludedRoute($request, $levelConfig) || $this->accessChecker->hasValidToken($request, $level, $state['id'] ?? '')) {
             return;
         }
 
@@ -65,7 +70,7 @@ class MaintenanceListener
         if (null !== $userLifetime) {
             $cookie = Cookie::create(
                 MaintenanceAccessChecker::COOKIE_NAME,
-                $this->tokenSigner->generateToken($userLifetime, $level),
+                $this->tokenSigner->generateToken($userLifetime, $level, $state['id'] ?? ''),
                 time() + $userLifetime,
                 '/',
                 null,
@@ -80,6 +85,12 @@ class MaintenanceListener
             return;
         }
 
+        if ('json' === $request->getPreferredFormat()) {
+            $event->setResponse(new JsonResponse(['error' => 'maintenance'], Response::HTTP_SERVICE_UNAVAILABLE));
+
+            return;
+        }
+
         $template = $levelConfig['template'];
 
         try {
@@ -89,6 +100,10 @@ class MaintenanceListener
         }
 
         $response = new Response($content, Response::HTTP_SERVICE_UNAVAILABLE);
+        if (isset($state['ends_at'])) {
+            $response->headers->set('Retry-After', (string) max(0, $state['ends_at'] - time()));
+        }
+
         $event->setResponse($response);
     }
 
@@ -102,8 +117,9 @@ class MaintenanceListener
             return;
         }
 
+        /** @psalm-suppress MixedAssignment */
         $cookie = $event->getRequest()->attributes->get('_maintenance_cookie_to_set');
-        if ($cookie) {
+        if ($cookie instanceof Cookie) {
             $event->getResponse()->headers->setCookie($cookie);
         }
     }

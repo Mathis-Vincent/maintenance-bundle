@@ -1,0 +1,16 @@
+name: Feature
+description: Suggest an improvement
+labels: ["Feature"]
+body:
+  - type: textarea
+    id: need
+    attributes:
+      label: Need
+      description: The problem you want solved.
+    validations:
+      required: true
+  - type: textarea
+    id: proposal
+    attributes:
+      label: Proposal
+      description: How it could work (config, command, behaviour).

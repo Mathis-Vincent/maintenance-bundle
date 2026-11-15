@@ -15,7 +15,7 @@ use Symfony\Component\Console\Style\SymfonyStyle;
     name: 'maintenance:announce',
     description: 'Announces an upcoming maintenance, without starting it.'
 )]
-class AnnounceMaintenanceCommand extends Command
+final class AnnounceMaintenanceCommand extends Command
 {
     public function __construct(private MaintenanceManager $maintenanceManager)
     {

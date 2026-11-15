@@ -49,6 +49,39 @@ class MaintenanceListenerTest extends WebTestCase
         self::assertStringContainsString('Maintenance in progress', (string) $this->client->getResponse()->getContent());
     }
 
+    public function testRetryAfterIsSentWithDuration(): void
+    {
+        $this->manager()->activate('default', 3600);
+
+        $this->client->request('GET', '/');
+
+        self::assertResponseStatusCodeSame(503);
+        $retryAfter = (int) $this->client->getResponse()->headers->get('Retry-After');
+        self::assertGreaterThan(3590, $retryAfter);
+        self::assertLessThanOrEqual(3600, $retryAfter);
+    }
+
+    public function testNoRetryAfterWithoutDuration(): void
+    {
+        $this->manager()->activate('default');
+
+        $this->client->request('GET', '/');
+
+        self::assertResponseStatusCodeSame(503);
+        self::assertResponseNotHasHeader('Retry-After');
+    }
+
+    public function testJsonClientGetsJsonResponse(): void
+    {
+        $this->manager()->activate('default');
+
+        $this->client->request('GET', '/', server: ['HTTP_ACCEPT' => 'application/json']);
+
+        self::assertResponseStatusCodeSame(503);
+        self::assertResponseHeaderSame('Content-Type', 'application/json');
+        self::assertSame('{"error":"maintenance"}', $this->client->getResponse()->getContent());
+    }
+
     public function testRequestPassesOnceDurationHasElapsed(): void
     {
         $this->manager()->activate('default', -1);
@@ -118,6 +151,16 @@ class MaintenanceListenerTest extends WebTestCase
         $this->assertBypassCookieLifetime(2592000);
     }
 
+    public function testRoleInheritedThroughHierarchyGetsThrough(): void
+    {
+        $this->manager()->activate('members');
+        $this->client->loginUser($this->user('support'));
+
+        $this->client->request('GET', '/');
+
+        self::assertResponseIsSuccessful();
+    }
+
     public function testLoggedInUserWithoutAllowedRoleIsBlocked(): void
     {
         $this->manager()->activate('admin');
@@ -131,7 +174,7 @@ class MaintenanceListenerTest extends WebTestCase
     public function testValidBypassCookieGetsThroughItsLevel(): void
     {
         $this->manager()->activate('admin');
-        $token = static::getContainer()->get(MaintenanceTokenSigner::class)->generateToken(60, 'admin');
+        $token = static::getContainer()->get(MaintenanceTokenSigner::class)->generateToken(60, 'admin', $this->manager()->getState()['id']);
         $this->client->getCookieJar()->set(new Cookie(self::COOKIE, $token));
 
         $this->client->request('GET', '/');
@@ -139,10 +182,22 @@ class MaintenanceListenerTest extends WebTestCase
         self::assertResponseIsSuccessful();
     }
 
+    public function testBypassCookieFromPreviousMaintenanceIsRejected(): void
+    {
+        $this->manager()->activate('admin');
+        $token = static::getContainer()->get(MaintenanceTokenSigner::class)->generateToken(60, 'admin', $this->manager()->getState()['id']);
+        $this->manager()->activate('admin');
+        $this->client->getCookieJar()->set(new Cookie(self::COOKIE, $token));
+
+        $this->client->request('GET', '/');
+
+        self::assertResponseStatusCodeSame(503);
+    }
+
     public function testBypassCookieFromAnotherLevelIsRejected(): void
     {
         $this->manager()->activate('default');
-        $token = static::getContainer()->get(MaintenanceTokenSigner::class)->generateToken(60, 'admin');
+        $token = static::getContainer()->get(MaintenanceTokenSigner::class)->generateToken(60, 'admin', $this->manager()->getState()['id']);
         $this->client->getCookieJar()->set(new Cookie(self::COOKIE, $token));
 
         $this->client->request('GET', '/');
@@ -153,7 +208,7 @@ class MaintenanceListenerTest extends WebTestCase
     public function testAuthorizedUserKeepsItsValidToken(): void
     {
         $this->manager()->activate('admin');
-        $token = static::getContainer()->get(MaintenanceTokenSigner::class)->generateToken(60, 'admin');
+        $token = static::getContainer()->get(MaintenanceTokenSigner::class)->generateToken(60, 'admin', $this->manager()->getState()['id']);
         $this->client->getCookieJar()->set(new Cookie(self::COOKIE, $token));
 
         $this->client->request('GET', '/', server: ['REMOTE_ADDR' => '10.0.0.42']);
@@ -246,7 +301,7 @@ class MaintenanceListenerTest extends WebTestCase
     public function testBannerShowsOnExcludedRouteForValidBypassCookie(): void
     {
         $this->manager()->activate('partial');
-        $token = static::getContainer()->get(MaintenanceTokenSigner::class)->generateToken(60, 'partial');
+        $token = static::getContainer()->get(MaintenanceTokenSigner::class)->generateToken(60, 'partial', $this->manager()->getState()['id']);
         $this->client->getCookieJar()->set(new Cookie(self::COOKIE, $token));
 
         $this->client->request('GET', '/banner-excluded');
@@ -290,7 +345,7 @@ class MaintenanceListenerTest extends WebTestCase
         self::assertEqualsWithDelta(time() + $lifetime, $cookie->getExpiresTime(), 5);
         self::assertTrue($cookie->isSecure());
         self::assertTrue($cookie->isHttpOnly());
-        self::assertTrue(static::getContainer()->get(MaintenanceTokenSigner::class)->validateToken((string) $cookie->getValue(), $this->manager()->getState()['level']));
+        self::assertTrue(static::getContainer()->get(MaintenanceTokenSigner::class)->validateToken((string) $cookie->getValue(), $this->manager()->getState()['level'], $this->manager()->getState()['id']));
     }
 
     private function user(string $username): \Symfony\Component\Security\Core\User\UserInterface

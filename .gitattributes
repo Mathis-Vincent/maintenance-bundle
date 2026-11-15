@@ -11,5 +11,4 @@
 /Makefile export-ignore
 /compose.yaml export-ignore
 /phpunit.dist.xml export-ignore
-/psalm-baseline.xml export-ignore
 /psalm.xml export-ignore

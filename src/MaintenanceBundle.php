@@ -2,6 +2,8 @@
 
 namespace MathisVincent\MaintenanceBundle;
 
+use MathisVincent\MaintenanceBundle\DependencyInjection\RoleProviderPass;
+use MathisVincent\MaintenanceBundle\Service\MaintenanceRoleProviderInterface;
 use Symfony\Component\Config\Definition\Configurator\DefinitionConfigurator;
 use Symfony\Component\DependencyInjection\ContainerBuilder;
 use Symfony\Component\DependencyInjection\Loader\Configurator\ContainerConfigurator;
@@ -9,12 +11,20 @@ use Symfony\Component\HttpKernel\Bundle\AbstractBundle;
 
 /**
  * Main bundle class for the MathisVincent Maintenance Bundle.
+ *
+ * @psalm-type LevelConfig = array{template: string, banner_template?: string|null, allowed_ip?: list<string>, allowed_roles?: list<string>, excluded_routes?: list<string>}
+ * @psalm-type Config = array{role_lifetimes?: array<string, int>, levels: array<string, LevelConfig>}
+ *
+ * @psalm-suppress DeprecatedInterface AbstractBundle implements BundleInterface, deprecated since Symfony 8.1 only
  */
-class MaintenanceBundle extends AbstractBundle
+final class MaintenanceBundle extends AbstractBundle
 {
     /**
      * Configures the bundle options and tree structure.
+     *
+     * @psalm-suppress PossiblyUndefinedMethod, MixedMethodCall the config tree builder is fluent and untyped
      */
+    #[\Override]
     public function configure(DefinitionConfigurator $definition): void
     {
         $definition->rootNode()
@@ -27,6 +37,7 @@ class MaintenanceBundle extends AbstractBundle
                 'ROLE_HELP_DESK' => 2592000,
             ])
             ->end()
+            ->scalarNode('role_provider')->defaultNull()->end()
             ->arrayNode('levels')
             ->useAttributeAsKey('name')
             ->arrayPrototype()
@@ -52,9 +63,21 @@ class MaintenanceBundle extends AbstractBundle
     /**
      * Loads extension parameters into the container.
      */
-    public function loadExtension(array $config, ContainerConfigurator $container, ContainerBuilder $builder): void
+    #[\Override]
+    public function loadExtension(array $config, ContainerConfigurator $configurator, ContainerBuilder $container): void
     {
-        $builder->setParameter('maintenance.config', $config);
-        $container->import('../config/services.yaml');
+        $container->setParameter('maintenance.config', $config);
+        $configurator->import('../config/services.yaml');
+
+        $provider = (string) ($config['role_provider'] ?? '');
+        if ('' !== $provider) {
+            $container->setAlias(MaintenanceRoleProviderInterface::class, $provider);
+        }
+    }
+
+    #[\Override]
+    public function build(ContainerBuilder $container): void
+    {
+        $container->addCompilerPass(new RoleProviderPass());
     }
 }

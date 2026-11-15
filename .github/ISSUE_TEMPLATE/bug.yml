@@ -1,0 +1,25 @@
+name: Bug
+description: Something does not work as documented
+labels: ["Bug"]
+body:
+  - type: textarea
+    id: description
+    attributes:
+      label: What happens
+      description: What you expected and what you got.
+    validations:
+      required: true
+  - type: textarea
+    id: reproduce
+    attributes:
+      label: How to reproduce
+      description: Configuration, commands and steps.
+    validations:
+      required: true
+  - type: input
+    id: versions
+    attributes:
+      label: Versions
+      description: Bundle, Symfony and PHP versions.
+    validations:
+      required: true

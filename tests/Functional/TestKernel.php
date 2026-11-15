@@ -56,6 +56,7 @@ class TestKernel extends Kernel
         ]);
 
         $container->extension('security', [
+            'role_hierarchy' => ['ROLE_SUPPORT' => 'ROLE_USER'],
             'password_hashers' => [InMemoryUser::class => 'plaintext'],
             'providers' => [
                 'users' => [
@@ -91,6 +92,7 @@ class TestKernel extends Kernel
                     'banner_template' => 'banner.html.twig',
                     'allowed_roles' => ['ROLE_ADMIN', 'ROLE_SUPPORT'],
                 ],
+                'members' => ['template' => 'maintenance.html.twig', 'allowed_roles' => ['ROLE_USER']],
                 'broken' => ['template' => 'missing.html.twig', 'banner_template' => 'missing.html.twig'],
                 'ip_only' => ['template' => 'maintenance.html.twig', 'banner_template' => 'banner.html.twig', 'allowed_ip' => ['10.0.0.0/24']],
                 'closed' => ['template' => 'maintenance.html.twig', 'banner_template' => 'banner.html.twig'],
